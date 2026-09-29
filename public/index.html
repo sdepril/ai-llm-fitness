@@ -84,12 +84,14 @@ button { cursor:pointer; font-weight:500 }
 .seg button:hover { border-color:var(--accent) }
 .seg button.on { background:linear-gradient(135deg, var(--navy-3), var(--navy-2)); border-color:transparent; color:#fff; box-shadow:var(--glow-navy) }
 .seg button.on.yes { background:linear-gradient(135deg, var(--accent-2), var(--accent-deep)); border-color:transparent; box-shadow:var(--glow-accent) }
-.arch { display:grid; gap:6px; margin-top:4px }
-.arch button { width:100%; text-align:left; padding:9px 11px; border-radius:12px; background:#fff; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px; transition:border-color .15s, box-shadow .15s }
-.arch button:hover { border-color:var(--accent) }
-.arch button.on { border-color:transparent; background:var(--surface-2); box-shadow:inset 3px 0 0 var(--accent) }
+.arch { display:grid; gap:9px; margin-top:6px }
+.arch button { width:100%; text-align:left; padding:11px 13px; border-radius:12px; background:#fff; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px; transition:border-color .15s, box-shadow .15s, transform .15s }
+.arch button:hover { border-color:var(--accent); transform:translateY(-1px) }
+.profiles button:hover { border-color:var(--accent); transform:translateY(-1px) }
+.arch button.on { border-color:transparent; background:linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 55%, var(--accent-deep) 100%); box-shadow:var(--glow-accent) }
 .arch .t { font-weight:600; font-size:12.5px } .arch .m { font-size:10.5px; color:var(--text-3); white-space:nowrap }
-.arch button.on .m { color:var(--accent-deep); font-weight:700 }
+.arch button.on .t { color:#fff }
+.arch button.on .m { color:rgba(255,255,255,.88); font-weight:700 }
 .scen { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
 @media (max-width:700px) { .scen { grid-template-columns:1fr } }
 .sc { border-radius:16px; padding:16px; background:var(--surface-2); cursor:pointer; transition:transform .12s, box-shadow .12s; border:1px solid transparent }
@@ -110,8 +112,8 @@ code { font-size:11px; background:var(--surface-2); padding:0 4px; border-radius
 .gate .panel { padding:22px }
 .gate h1 { font-size:24px }
 .err { color:#c43d3c; font-size:12.5px }
-.profiles { display:flex; flex-wrap:wrap; gap:6px }
-.profiles button { border:1px solid var(--border); background:#fff; color:var(--text); border-radius:999px; padding:6px 12px; font-size:13px; width:auto; transition:box-shadow .15s, border-color .15s }
+.profiles { display:flex; flex-wrap:wrap; gap:9px }
+.profiles button { border:1px solid var(--border); background:#fff; color:var(--text); border-radius:999px; padding:7px 15px; font-size:13px; width:auto; transition:box-shadow .15s, border-color .15s, transform .15s }
 .profiles button[aria-pressed="true"] { background:linear-gradient(135deg, var(--navy-3), var(--navy-2)); border-color:transparent; color:#fff; box-shadow:var(--glow-navy) }
 .profile-desc { color:var(--text-2); font-size:12.5px; margin:10px 0 0 }
 .wt-row { margin:0 0 14px }
