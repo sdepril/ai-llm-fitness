@@ -25,10 +25,12 @@
     "success_rate": 0.85,
     "context_margin": 1.2,
     "default_context_window": 128000,
-    "quality_thresholds": {
-      "low": 40,
-      "medium": 55,
-      "high": 70
+    "intelligence_floor_by_weight": {
+      "0": 0,
+      "25": 40,
+      "50": 55,
+      "75": 70,
+      "100": 85
     },
     "latency_min_tps": {
       "batch": 0,
@@ -97,8 +99,8 @@
       "source": "Batch API ~50% discount",
       "status": "to-verify per provider"
     },
-    "quality_thresholds": {
-      "source": "Artificial Analysis Intelligence Index; scale changes per version",
+    "intelligence_floor_by_weight": {
+      "source": "Artificial Analysis Intelligence Index; scale changes per version. Anchors chosen so the step-3 Intelligence priority (0-100) interpolates onto it.",
       "status": "to-verify at each AA refresh"
     },
     "ptu_breakeven_tokens_month": {

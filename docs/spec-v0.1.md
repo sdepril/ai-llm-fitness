@@ -58,11 +58,11 @@ Low / base / high door drie factoren tegelijk te variëren:
 
 ### 0.4 Modelklasse-selectie
 
-Input uit intake: quality bar (laag / midden / hoog), benodigde context (`max tokens_in_per_eenheid` + marge 20%), latency-eis (batch / achtergrond / interactief), modaliteit.
+Input uit intake: Intelligence-prioriteit uit stap 3 (0-100, dezelfde schaal als de andere prioriteitsgewichten), benodigde context (`max tokens_in_per_eenheid` + marge 20%), latency-eis (batch / achtergrond / interactief), modaliteit.
 
 ```
 kandidaten = modellen waarvoor:
-    kwaliteitsindex ≥ drempel(quality_bar)          (Artificial Analysis-index; drempels in config)
+    kwaliteitsindex ≥ intelligence_floor(intelligence_weight)   (Artificial Analysis-index; lineaire interpolatie over ankers in config)
     contextvenster ≥ benodigde context × 1.2
     tokens/sec ≥ drempel(latency_eis)  (enkel interactief)
     modaliteit ⊇ vereiste modaliteit
@@ -258,7 +258,7 @@ BOM: klein model, Batch API, storage, Functions, Log Analytics. Signaal: als vol
                 "count_source": "DMS-status 'reviewed'", "quality_floor": "…", "bigT": "T(n)" },
   "assumptions": { "tpw": 1.8, "wpp": 600, "a": 1.25, "h": 0.7, "q": 0.85, "D": 22 },
   "token_profile_month": { "input": 0, "cached_input": 0, "output": 0, "scenario": "base" },
-  "model": { "quality_bar": "hoog", "recommended": "", "default_alternative": "", "context_needed": 0, "latency": "batch" },
+  "model": { "intelligence_floor": 70, "recommended": "", "default_alternative": "", "context_needed": 0, "latency": "batch" },
   "bom": [
     { "component": "Azure OpenAI deployment", "role": "inference", "sku_hint": "PAYG", "quantity": 0, "unit": "1M tokens (in/cached/out)", "source": "token_profile" },
     { "component": "Blob Storage", "role": "document store", "sku_hint": "Hot LRS", "quantity": 0, "unit": "GB-month", "source": "N_d × D × avg_size" },

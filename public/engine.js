@@ -21,7 +21,6 @@ export const ARCHETYPES = {
       { id: "retry_rate", label: "Retry rate", type: "number", default: 0.15, step: 0.01, help: 'Fraction of documents that need a second attempt (parse errors, rejected output). Multiplies tokens, not outcomes.' },
       { id: "eval_fraction", label: "Automated eval calls (fraction)", type: "number", default: 0.1, step: 0.01, help: 'Fraction of outputs checked by an automated evaluator — those checks are model calls too and cost tokens.' },
       { id: "success_rate", label: "Success rate q (quality floor)", type: "number", default: 0.85, step: 0.01, help: 'Share of outputs that clear your quality floor. Only these count as valued outcomes (the denominator of cost per outcome).' },
-      { id: "quality_bar", label: "Quality bar", type: "select", options: ["low", "medium", "high"], default: "high", help: 'How capable the model must be. Sets the minimum Artificial Analysis intelligence index; the tool then picks the cheapest model above it.' },
       { id: "baseline_minutes", label: "Baseline: manual minutes per document", type: "number", default: 20, help: 'What the same outcome costs today without AI, in staff minutes. Gives the comparison that makes this a business case.' },
       { id: "baseline_rate", label: "Baseline: hourly rate (EUR)", type: "number", default: 65, help: 'Fully loaded hourly cost of the people doing it today (EUR).' },
     ],
@@ -47,7 +46,6 @@ export const ARCHETYPES = {
       { id: "latency", label: "Latency requirement", type: "select", options: ["interactive", "background", "batch"], default: "interactive", help: 'Interactive needs fast models (tokens/second); background or batch can use slower, cheaper ones — and batch pricing.' },
       { id: "retry_rate", label: "Retry rate", type: "number", default: 0.1, step: 0.01, help: 'Fraction of documents that need a second attempt (parse errors, rejected output). Multiplies tokens, not outcomes.' },
       { id: "success_rate", label: "Success rate q", type: "number", default: 0.8, step: 0.01, help: 'Share of outputs that clear your quality floor. Only these count as valued outcomes (the denominator of cost per outcome).' },
-      { id: "quality_bar", label: "Quality bar", type: "select", options: ["low", "medium", "high"], default: "medium", help: 'How capable the model must be. Sets the minimum Artificial Analysis intelligence index; the tool then picks the cheapest model above it.' },
       { id: "baseline_minutes", label: "Baseline: staff minutes per conversation", type: "number", default: 8, help: 'What the same outcome costs today without AI, in staff minutes. Gives the comparison that makes this a business case.' },
       { id: "baseline_rate", label: "Baseline: hourly rate (EUR)", type: "number", default: 55, help: 'Fully loaded hourly cost of the people doing it today (EUR).' },
     ],
@@ -69,7 +67,6 @@ export const ARCHETYPES = {
       { id: "latency", label: "Latency requirement", type: "select", options: ["interactive", "background", "batch"], default: "interactive", help: 'Interactive needs fast models (tokens/second); background or batch can use slower, cheaper ones — and batch pricing.' },
       { id: "retry_rate", label: "Retry rate", type: "number", default: 0.1, step: 0.01, help: 'Fraction of documents that need a second attempt (parse errors, rejected output). Multiplies tokens, not outcomes.' },
       { id: "success_rate", label: "Success rate q (groundedness)", type: "number", default: 0.85, step: 0.01, help: 'Share of outputs that clear your quality floor. Only these count as valued outcomes (the denominator of cost per outcome).' },
-      { id: "quality_bar", label: "Quality bar", type: "select", options: ["low", "medium", "high"], default: "medium", help: 'How capable the model must be. Sets the minimum Artificial Analysis intelligence index; the tool then picks the cheapest model above it.' },
       { id: "baseline_minutes", label: "Baseline: minutes to find the answer manually", type: "number", default: 10, help: 'What the same outcome costs today without AI, in staff minutes. Gives the comparison that makes this a business case.' },
       { id: "baseline_rate", label: "Baseline: hourly rate (EUR)", type: "number", default: 55, help: 'Fully loaded hourly cost of the people doing it today (EUR).' },
     ],
@@ -91,7 +88,6 @@ export const ARCHETYPES = {
       { id: "retry_rate", label: "Retry rate", type: "number", default: 0.25, step: 0.01, help: 'Fraction of documents that need a second attempt (parse errors, rejected output). Multiplies tokens, not outcomes.' },
       { id: "eval_fraction", label: "Automated eval calls (fraction)", type: "number", default: 0.2, step: 0.01, help: 'Fraction of outputs checked by an automated evaluator — those checks are model calls too and cost tokens.' },
       { id: "success_rate", label: "Success rate q", type: "number", default: 0.7, step: 0.01, help: 'Share of outputs that clear your quality floor. Only these count as valued outcomes (the denominator of cost per outcome).' },
-      { id: "quality_bar", label: "Quality bar (planner)", type: "select", options: ["low", "medium", "high"], default: "high", help: 'How capable the model must be. Sets the minimum Artificial Analysis intelligence index; the tool then picks the cheapest model above it.' },
       { id: "latency", label: "Latency requirement", type: "select", options: ["background", "interactive", "batch"], default: "background", help: 'Interactive needs fast models (tokens/second); background or batch can use slower, cheaper ones — and batch pricing.' },
       { id: "baseline_minutes", label: "Baseline: manual minutes per task", type: "number", default: 45, help: 'What the same outcome costs today without AI, in staff minutes. Gives the comparison that makes this a business case.' },
       { id: "baseline_rate", label: "Baseline: hourly rate (EUR)", type: "number", default: 70, help: 'Fully loaded hourly cost of the people doing it today (EUR).' },
@@ -110,7 +106,6 @@ export const ARCHETYPES = {
       { id: "batch", label: "Batch window ≥ 24h", type: "bool", default: true, help: "If results may wait (SLA > 1 hour), the Batch API typically halves the model price. Interactive use cases can't use it." },
       { id: "retry_rate", label: "Retry rate", type: "number", default: 0.05, step: 0.01, help: 'Fraction of documents that need a second attempt (parse errors, rejected output). Multiplies tokens, not outcomes.' },
       { id: "success_rate", label: "Success rate q (accuracy)", type: "number", default: 0.92, step: 0.01, help: 'Share of outputs that clear your quality floor. Only these count as valued outcomes (the denominator of cost per outcome).' },
-      { id: "quality_bar", label: "Quality bar", type: "select", options: ["low", "medium", "high"], default: "low", help: 'How capable the model must be. Sets the minimum Artificial Analysis intelligence index; the tool then picks the cheapest model above it.' },
       { id: "baseline_minutes", label: "Baseline: manual minutes per item", type: "number", default: 1, help: 'What the same outcome costs today without AI, in staff minutes. Gives the comparison that makes this a business case.' },
       { id: "baseline_rate", label: "Baseline: hourly rate (EUR)", type: "number", default: 45, help: 'Fully loaded hourly cost of the people doing it today (EUR).' },
     ],
@@ -210,9 +205,23 @@ function cacheHit(cfg, sc) {
 }
 
 // ---------- model selection ----------
-export function selectModel(models, { quality_bar, latency, contextNeeded, inShare = 0.8 }, cfg) {
+// Maps the step-3 "Intelligence" priority (0-100, same scale as WEIGHT_LEVELS) onto a minimum Artificial
+// Analysis intelligence index, by linear interpolation across cfg.defaults.intelligence_floor_by_weight.
+// This replaces the old quality_bar dropdown: the model that actually gets priced now tracks the same
+// priority weight shown (and editable) in step 3, instead of a separate, coarser step-1 control.
+export function intelligenceFloor(weight, cfg) {
+  const table = cfg.defaults.intelligence_floor_by_weight;
+  const levels = Object.keys(table).map(Number).sort((a, b) => a - b);
+  const w = Math.max(levels[0], Math.min(levels[levels.length - 1], weight ?? 0));
+  for (let i = 0; i < levels.length - 1; i++) {
+    const a = levels[i], b = levels[i + 1];
+    if (w >= a && w <= b) return Math.round(table[a] + (w - a) / (b - a) * (table[b] - table[a]));
+  }
+  return Math.round(table[levels[levels.length - 1]]);
+}
+export function selectModel(models, { minIntelligence = 0, latency, contextNeeded, inShare = 0.8 }, cfg) {
   if (!models || !models.length) return { recommended: null, defaultAlternative: null, candidates: [], note: "No model data loaded — enter prices manually." };
-  const thr = cfg.defaults.quality_thresholds[quality_bar ?? "medium"];
+  const thr = minIntelligence;
   const minTps = cfg.defaults.latency_min_tps[latency ?? "batch"];
   const priced = models.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
   const cands = priced.filter(m => (m.intelligence_index ?? -1) >= thr && (minTps === 0 || (m.output_tokens_per_sec ?? 0) >= minTps));
@@ -291,7 +300,9 @@ export function computeScenario(archetype, params, cfg, scenarioName, models, pr
   const batchFactor = p.batch ? cfg.defaults.batch_factor : 1;
   const ptuSignal = input + cached + output >= cfg.defaults.ptu_breakeven_tokens_month;
 
-  const sel = selectModel(models, { quality_bar: p.quality_bar, latency: p.latency, contextNeeded: T.contextNeeded, inShare: input / max(1, input + output) }, cfg);
+  const intelligenceWeight = p.intelligence_weight ?? (TASKFIT_PROFILES[TASKFIT_PROFILE_OF[archetype] || "bulk"]?.w.intelligence_index ?? 0);
+  const minIntelligence = intelligenceFloor(intelligenceWeight, cfg);
+  const sel = selectModel(models, { minIntelligence, latency: p.latency, contextNeeded: T.contextNeeded, inShare: input / max(1, input + output) }, cfg);
   const model = priceOverride || sel.recommended;
   const modelCostUsd = priceTokens(model, { input, cached, output }, batchFactor);
   const priceSource = !model ? "none" : priceOverride ? (priceOverride.slug === "manual" ? "manual" : "task-fit") : "artificial-analysis";
@@ -336,7 +347,7 @@ export function toBomJson(result, meta = {}) {
     scenario_used: result.selected || "base",
     assumptions: b.assumptions,
     token_profile_month: { low: result.scenarios.low.month, base: b.month, high: result.scenarios.high.month },
-    model: b.model.used ? { ...b.model.used, quality_bar: result.params.quality_bar, latency: result.params.latency || "batch", context_needed: b.per_unit.context_needed, note: b.model.selection.note } : { note: b.model.selection.note },
+    model: b.model.used ? { ...b.model.used, intelligence_floor: b.model.selection.threshold ?? null, latency: result.params.latency || "batch", context_needed: b.per_unit.context_needed, note: b.model.selection.note } : { note: b.model.selection.note },
     bom: b.bom,
     cost_per_outcome_eur: { low: result.scenarios.low.cost.cost_per_outcome_eur, base: b.cost.cost_per_outcome_eur, high: result.scenarios.high.cost.cost_per_outcome_eur, baseline: b.cost.baseline_per_outcome_eur, note: "Model + embedding cost only; infra from Azure estimator, labour from ledger." },
     flags: b.flags, notes: b.notes,
@@ -375,7 +386,7 @@ export function toTaskFitParams(result, cfg, meta = {}) {
     in: ((b.month.input + b.month.cached) / 1e6).toFixed(1),
     out: (b.month.output / 1e6).toFixed(2),
     cache: String(cachePct),
-    minInt: String(cfg.defaults.quality_thresholds[p.quality_bar || "medium"]),
+    minInt: String(b.model.selection.threshold ?? intelligenceFloor(p.intelligence_weight ?? (TASKFIT_PROFILES[PROFILE_OF[result.archetype] || "bulk"]?.w.intelligence_index ?? 0), cfg)),
     tkN: String(Math.round(b.month.attempts)),
     tkK: String(callsPerUnit),
     tkA: String(result.archetype === "agentic" ? Math.max(1, p.sub_agents + 1) : 1),

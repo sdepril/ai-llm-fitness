@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { compute, computeScenario, defaultsFor, selectModel, toBomJson, toArchitectureMarkdown, ARCHETYPES } from "../public/engine.js";
+import { compute, computeScenario, defaultsFor, selectModel, intelligenceFloor, toBomJson, toArchitectureMarkdown, ARCHETYPES } from "../public/engine.js";
 
 const cfg = JSON.parse(readFileSync(new URL("../public/config.json", import.meta.url)));
 const models = [
@@ -53,11 +53,18 @@ test("attempts and success rate act on different sides", () => {
 });
 
 test("model selection: cheapest above threshold, respects latency", () => {
-  const s = selectModel(models, { quality_bar: "medium", latency: "batch", contextNeeded: 1000 }, cfg);
+  const s = selectModel(models, { minIntelligence: 55, latency: "batch", contextNeeded: 1000 }, cfg);
   assert.equal(s.recommended.slug, "mid");
-  const s2 = selectModel(models, { quality_bar: "high", latency: "interactive", contextNeeded: 1000 }, cfg);
+  const s2 = selectModel(models, { minIntelligence: 70, latency: "interactive", contextNeeded: 1000 }, cfg);
   assert.equal(s2.recommended, null); // Top is too slow for interactive (40 < 60)
   assert.equal(s.defaultAlternative.slug, "top");
+});
+
+test("intelligenceFloor: interpolates the step-3 Intelligence weight onto the AA index scale", () => {
+  assert.equal(intelligenceFloor(0, cfg), 0);
+  assert.equal(intelligenceFloor(50, cfg), 55);
+  assert.equal(intelligenceFloor(100, cfg), 85);
+  assert.equal(intelligenceFloor(15, cfg), 24); // between the 0 and 25 anchors
 });
 
 test("agentic: no hard stop flags unbounded; hard stop caps", () => {
@@ -78,13 +85,13 @@ test("exports: BOM json and markdown render", () => {
   assert.ok(md.includes("| Component |") && md.includes("Cost per outcome"));
 });
 
-test("task-fit deep link carries workload, quality bar and tokenomics inputs", async () => {
+test("task-fit deep link carries workload, intelligence floor and tokenomics inputs", async () => {
   const { toTaskFitUrl } = await import("../public/engine.js");
   const r = compute("assistant", defaultsFor("assistant"), cfg, models);
   const u = new URL(toTaskFitUrl(r, cfg, { name: "Helpdesk bot" }));
   const q = u.searchParams;
   assert.equal(q.get("profile"), "chat");
-  assert.equal(q.get("minInt"), "55");
+  assert.equal(q.get("minInt"), String(intelligenceFloor(15, cfg))); // chat profile's default intelligence weight (15) -> 24
   assert.equal(q.get("tkK"), "6");
   assert.ok(+q.get("in") > 0 && +q.get("out") > 0);
   assert.equal(u.hash, "#tokenomics");

@@ -242,7 +242,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </section>
 
     <section class="panel" id="sec-priorities">
-      <div class="hd"><span class="n">3</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything.</span></div>
+      <div class="hd"><span class="n">3</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything. Intelligence also sets the minimum quality bar the priced model must clear (step 4) — not just the table's sort order.</span></div>
       <div class="grid2">
         <div>
           <h3>Task profile</h3>
@@ -364,7 +364,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
 </div>
 
 <script type="module">
-import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS } from "./engine.js";
+import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS, intelligenceFloor } from "./engine.js";
 
 const $ = id => document.getElementById(id);
 const cfg = await (await fetch("./config.json")).json();
@@ -652,11 +652,13 @@ $("tkLaRow").style.display = "none"; $("tkLaHelp").style.display = "none";
 // ---------- main compute + render ----------
 function run() {
   const params = readParams();
+  const intelligenceWeight = currentWeights().intelligence_index ?? 0;
+  params.intelligence_weight = intelligenceWeight;
   const ov = priceOverride();
   result = compute(currentArch, params, cfg, models, ov, selectedScenario);
   const b = selectedOf(result), p = result.params;
 
-  const floorInt = cfg.defaults.quality_thresholds[p.quality_bar || "medium"];
+  const floorInt = intelligenceFloor(intelligenceWeight, cfg);
   if (!minIntTouched) $("minInt").value = floorInt;
 
   // dynamic ceiling for the cost slider, and the cheapest model meeting the archetype's floor
@@ -672,10 +674,10 @@ function run() {
   $("maxCost").max = costCeiling;
   if (!maxCostTouched) $("maxCost").value = costCeiling;
   $("reqFloor").innerHTML = !models.length
-    ? `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — fetch models below to see what that costs at today's token volume.`
+    ? `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — fetch models below to see what that costs at today's token volume (step 2).`
     : floorCost == null
-      ? `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — no priced model in the fetched list meets it yet.`
-      : `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — the cheapest matching model runs from <b>${usd(floorCost)}</b>/month at today's token volume.`;
+      ? `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — no priced model in the fetched list meets it yet.`
+      : `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — the cheapest matching model runs from <b>${usd(floorCost)}</b>/month at today's token volume (step 2).`;
 
   // section 2: scenario cards
   const S = result.scenarios;
