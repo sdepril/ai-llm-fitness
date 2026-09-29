@@ -208,7 +208,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       <p class="sub">Describe the use case, size the tokens, weigh what matters, pick a model and see cost per outcome — low / base / high — with the tuning levers that decide what a successful outcome really costs.</p>
     </header>
     <nav class="stepnav">
-      <a href="#sec-usecase">1 · Use case</a><a href="#sec-sizing">2 · Token profile</a><a href="#sec-priorities">3 · Priorities</a>
+      <a href="#sec-usecase">1 · Use case</a><a href="#sec-priorities">2 · Priorities</a><a href="#sec-sizing">3 · Token profile</a>
       <a href="#sec-model">4 · Model</a><a href="#sec-cost">5 · Business case</a><a href="#sec-export">6 · Export</a>
     </nav>
 
@@ -235,14 +235,8 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       <div class="btns"><button class="btn ghost" id="reset">Reset defaults</button></div>
     </section>
 
-    <section class="panel" id="sec-sizing">
-      <div class="hd"><span class="n">2</span><h2>Token profile</h2><span class="desc">Three scenarios (low / base / high) vary tokens-per-word, retries and cache hit. Click one to make it the active scenario — it drives everything below.</span></div>
-      <div class="scen" id="scen"></div>
-      <div id="flags"></div>
-    </section>
-
     <section class="panel" id="sec-priorities">
-      <div class="hd"><span class="n">3</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything. Intelligence also sets the minimum quality bar the priced model must clear (step 4) — not just the table's sort order.</span></div>
+      <div class="hd"><span class="n">2</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything. Every weighted category below drives which model gets priced (step 4), not just the table's sort order.</span></div>
       <div class="grid2">
         <div>
           <h3>Task profile</h3>
@@ -254,6 +248,12 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
           <div id="weights"></div>
         </div>
       </div>
+    </section>
+
+    <section class="panel" id="sec-sizing">
+      <div class="hd"><span class="n">3</span><h2>Token profile</h2><span class="desc">Three scenarios (low / base / high) vary tokens-per-word, retries and cache hit. Click one to make it the active scenario — it drives everything below.</span></div>
+      <div class="scen" id="scen"></div>
+      <div id="flags"></div>
     </section>
 
     <section class="panel" id="sec-model">
@@ -655,29 +655,37 @@ function run() {
   const intelligenceWeight = currentWeights().intelligence_index ?? 0;
   params.intelligence_weight = intelligenceWeight;
   const ov = priceOverride();
-  result = compute(currentArch, params, cfg, models, ov, selectedScenario);
-  const b = selectedOf(result), p = result.params;
 
   const floorInt = intelligenceFloor(intelligenceWeight, cfg);
   if (!minIntTouched) $("minInt").value = floorInt;
 
-  // dynamic ceiling for the cost slider, and the cheapest model meeting the archetype's floor
+  // The full set of step-2 priorities (all 7 categories, not just Intelligence) drives which model
+  // actually gets priced — the same weighted fit-score ranking the step-4 table uses.
+  const selection = {
+    profile: profileId === "custom" ? undefined : profileId,
+    weights: profileId === "custom" ? customWeights : undefined,
+    minIntelligence: +$("minInt").value || 0,
+    maxCost: maxCostTouched ? (+$("maxCost").value || null) : null,
+    since: $("since").value, onlyComplete: $("complete").checked, providers,
+  };
+  result = compute(currentArch, params, cfg, models, ov, selectedScenario, selection);
+  const b = selectedOf(result), p = result.params;
+
+  // dynamic ceiling for the cost slider — display only, independent of which model got selected
   const monthlyFor = m => (m.usd_per_1m_input == null || m.usd_per_1m_output == null) ? null :
     (b.month.input * m.usd_per_1m_input + b.month.cached * (m.usd_per_1m_cache_hit ?? m.usd_per_1m_input) + b.month.output * m.usd_per_1m_output) / 1e6;
-  let maxObserved = 0, floorCost = null;
-  for (const m of models) {
-    const monthly = monthlyFor(m); if (monthly == null) continue;
-    if (monthly > maxObserved) maxObserved = monthly;
-    if ((m.intelligence_index ?? -1) >= floorInt && (floorCost == null || monthly < floorCost)) floorCost = monthly;
-  }
+  let maxObserved = 0;
+  for (const m of models) { const monthly = monthlyFor(m); if (monthly != null && monthly > maxObserved) maxObserved = monthly; }
   const costCeiling = Math.max(100, Math.ceil(maxObserved / 50) * 50 || 100);
   $("maxCost").max = costCeiling;
   if (!maxCostTouched) $("maxCost").value = costCeiling;
+
+  const usedModel = b.model.used;
   $("reqFloor").innerHTML = !models.length
-    ? `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — fetch models below to see what that costs at today's token volume (step 2).`
-    : floorCost == null
-      ? `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — no priced model in the fetched list meets it yet.`
-      : `Based on the Intelligence priority (step 3), this workload needs at least <b>${floorInt}</b> intelligence — the cheapest matching model runs from <b>${usd(floorCost)}</b>/month at today's token volume (step 2).`;
+    ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — fetch models below to see what this workload's best fit costs at today's token volume (step 3).`
+    : !usedModel
+      ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — no priced model in the fetched list meets the current filters.`
+      : `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — the best fit for this workload, <b>${esc(usedModel.name)}</b>, runs <b>${usd(b.cost.model_usd_month)}</b>/month at today's token volume (step 3).`;
 
   // section 2: scenario cards
   const S = result.scenarios;
@@ -715,7 +723,7 @@ function run() {
   const levers = { cacheTarget: +$("tkLc").value / 100, trimPct: +$("tkLt").value / 100, shortenPct: +$("tkLs").value / 100 };
   if (currentArch === "agentic") levers.agentDepth = +$("tkLa").value;
   $("tkLcO").textContent = Math.round(levers.cacheTarget * 100) + "%"; $("tkLtO").textContent = Math.round(levers.trimPct * 100) + "%"; $("tkLsO").textContent = Math.round(levers.shortenPct * 100) + "%"; $("tkLaO").textContent = $("tkLa").value;
-  const tuned = tuneScenario(currentArch, params, cfg, models, ov, selectedScenario, levers);
+  const tuned = tuneScenario(currentArch, params, cfg, models, ov, selectedScenario, levers, selection);
   const today = tuned.today, optd = tuned.optimized;
   const sr = ($("tkSR").value !== "" ? +$("tkSR").value : Math.round(today.assumptions.q * 100)) / 100;
   const succToday = today.cost.outcomes_month, succOpt = today.month.units * sr;

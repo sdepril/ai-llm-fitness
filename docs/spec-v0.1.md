@@ -58,16 +58,20 @@ Low / base / high door drie factoren tegelijk te variëren:
 
 ### 0.4 Modelklasse-selectie
 
-Input uit intake: Intelligence-prioriteit uit stap 3 (0-100, dezelfde schaal als de andere prioriteitsgewichten), benodigde context (`max tokens_in_per_eenheid` + marge 20%), latency-eis (batch / achtergrond / interactief), modaliteit.
+Input uit intake: alle 7 prioriteitsgewichten uit stap 2 (Intelligence, Coding, Agentic, Low price, Low cost per task, Speed, Low latency — elk 0-100), benodigde context (`max tokens_in_per_eenheid` + marge 20%), latency-eis (batch / achtergrond / interactief), modaliteit.
 
 ```
-kandidaten = modellen waarvoor:
+harde filters = modellen waarvoor:
     kwaliteitsindex ≥ intelligence_floor(intelligence_weight)   (Artificial Analysis-index; lineaire interpolatie over ankers in config)
+    prijs/maand ≤ max_cost (indien ingesteld)
+    tokens/sec ≥ drempel(latency_eis)
     contextvenster ≥ benodigde context × 1.2
-    tokens/sec ≥ drempel(latency_eis)  (enkel interactief)
     modaliteit ⊇ vereiste modaliteit
-aanbevolen = goedkoopste kandidaat op gewogen prijs (p_in × aandeel_in + p_out × aandeel_out)
+fit-score = gewogen gemiddelde van alle 7 metrics, elk 0-100 geschaald over de gefilterde kandidaten
+aanbevolen = kandidaat met de hoogste fit-score
 ```
+
+Dit is dezelfde gewogen ranking als de model-tabel in stap 4 (`rankModels()`) — er is geen apart "goedkoopste boven de drempel"-algoritme meer: alle 7 categorieën uit stap 2 bepalen mee welk model automatisch geprijsd wordt, niet enkel de sorteervolgorde van de tabel.
 
 Toon ook het duurste "default"-model ernaast: het verschil is het rightsizing-argument.
 

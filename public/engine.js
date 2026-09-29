@@ -219,21 +219,25 @@ export function intelligenceFloor(weight, cfg) {
   }
   return Math.round(table[levels[levels.length - 1]]);
 }
-export function selectModel(models, { minIntelligence = 0, latency, contextNeeded, inShare = 0.8 }, cfg) {
+// Picks the model that actually gets priced (BOM, cost, business case): the top fit-score row from
+// rankModels() — the same weighted ranking step 4's table shows, using ALL of step 3's priority
+// categories, not just intelligence — filtered by the same hard floors as the table (min intelligence,
+// max $/month, released-after, only-complete, providers) plus a latency-driven tokens/sec floor.
+export function selectModel(models, opts, cfg) {
+  const { weights, profile, minIntelligence = 0, maxCost = null, since = "", onlyComplete = false, providers = null,
+    latency, contextNeeded, inTokens = 0, outTokens = 0, cachedTokens = 0 } = opts;
   if (!models || !models.length) return { recommended: null, defaultAlternative: null, candidates: [], note: "No model data loaded — enter prices manually." };
-  const thr = minIntelligence;
   const minTps = cfg.defaults.latency_min_tps[latency ?? "batch"];
-  const priced = models.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
-  const cands = priced.filter(m => (m.intelligence_index ?? -1) >= thr && (minTps === 0 || (m.output_tokens_per_sec ?? 0) >= minTps));
-  const weighted = m => m.usd_per_1m_input * inShare + m.usd_per_1m_output * (1 - inShare);
-  const sorted = [...cands].sort((a, b) => weighted(a) - weighted(b));
-  const smartest = [...priced].sort((a, b) => (b.intelligence_index ?? 0) - (a.intelligence_index ?? 0))[0] || null;
+  const ranked = rankModels(models, { weights, profile, minInt: minIntelligence, maxCost, since, onlyComplete, providers, minTps, inTokens, outTokens, cachedTokens });
+  const priced = ranked.rows.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
+  const priceOnly = models.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
+  const smartest = [...priceOnly].sort((a, b) => (b.intelligence_index ?? 0) - (a.intelligence_index ?? 0))[0] || null;
   return {
-    recommended: sorted[0] || null,
+    recommended: priced[0] || null,
     defaultAlternative: smartest,
-    candidates: sorted.slice(0, 8),
-    threshold: thr, minTps,
-    note: `Cheapest model with intelligence index ≥ ${thr}${minTps ? ` and ≥ ${minTps} tokens/s` : ""}. Context window not in free-tier data — verify ≥ ${Math.round(contextNeeded * cfg.defaults.context_margin).toLocaleString()} tokens.`,
+    candidates: priced.slice(0, 8),
+    threshold: minIntelligence, minTps,
+    note: `Best fit for this workload's priorities (step 2), intelligence index ≥ ${minIntelligence}${maxCost != null ? `, ≤ $${maxCost}/mo` : ""}${minTps ? `, ≥ ${minTps} tokens/s` : ""}. Context window not in free-tier data — verify ≥ ${Math.round((contextNeeded ?? 0) * cfg.defaults.context_margin).toLocaleString()} tokens.`,
   };
 }
 
@@ -284,7 +288,7 @@ export function priceTokens(model, tokens, batchFactor = 1) {
 }
 
 // ---------- main ----------
-export function computeScenario(archetype, params, cfg, scenarioName, models, priceOverride) {
+export function computeScenario(archetype, params, cfg, scenarioName, models, priceOverride, selection = {}) {
   const sc = cfg.scenarios[scenarioName];
   const p = { ...defaultsFor(archetype), ...params };
   const T = TOKENS[archetype](p, cfg, sc);
@@ -300,9 +304,18 @@ export function computeScenario(archetype, params, cfg, scenarioName, models, pr
   const batchFactor = p.batch ? cfg.defaults.batch_factor : 1;
   const ptuSignal = input + cached + output >= cfg.defaults.ptu_breakeven_tokens_month;
 
-  const intelligenceWeight = p.intelligence_weight ?? (TASKFIT_PROFILES[TASKFIT_PROFILE_OF[archetype] || "bulk"]?.w.intelligence_index ?? 0);
-  const minIntelligence = intelligenceFloor(intelligenceWeight, cfg);
-  const sel = selectModel(models, { minIntelligence, latency: p.latency, contextNeeded: T.contextNeeded, inShare: input / max(1, input + output) }, cfg);
+  const chosenProfile = selection.profile || TASKFIT_PROFILE_OF[archetype] || "bulk";
+  const defaultWeights = TASKFIT_PROFILES[chosenProfile]?.w || TASKFIT_PROFILES.bulk.w;
+  const weights = selection.weights || defaultWeights;
+  const intelligenceWeight = selection.intelligenceWeight ?? p.intelligence_weight ?? (weights.intelligence_index ?? 0);
+  const minIntelligence = selection.minIntelligence ?? intelligenceFloor(intelligenceWeight, cfg);
+  const sel = selectModel(models, {
+    weights, profile: chosenProfile,
+    minIntelligence, maxCost: selection.maxCost ?? null, since: selection.since ?? "",
+    onlyComplete: selection.onlyComplete ?? false, providers: selection.providers ?? null,
+    latency: p.latency, contextNeeded: T.contextNeeded,
+    inTokens: input, outTokens: output, cachedTokens: cached,
+  }, cfg);
   const model = priceOverride || sel.recommended;
   const modelCostUsd = priceTokens(model, { input, cached, output }, batchFactor);
   const priceSource = !model ? "none" : priceOverride ? (priceOverride.slug === "manual" ? "manual" : "task-fit") : "artificial-analysis";
@@ -330,9 +343,9 @@ export function computeScenario(archetype, params, cfg, scenarioName, models, pr
   };
 }
 
-export function compute(archetype, params, cfg, models, priceOverride, selectedScenario = "base") {
+export function compute(archetype, params, cfg, models, priceOverride, selectedScenario = "base", selection = {}) {
   const scenarios = {};
-  for (const s of ["low", "base", "high"]) scenarios[s] = computeScenario(archetype, params, cfg, s, models, priceOverride);
+  for (const s of ["low", "base", "high"]) scenarios[s] = computeScenario(archetype, params, cfg, s, models, priceOverride, selection);
   const selected = ["low", "base", "high"].includes(selectedScenario) ? selectedScenario : "base";
   return { archetype, label: ARCHETYPES[archetype].label, unit: ARCHETYPES[archetype].unit, bigT: ARCHETYPES[archetype].bigT, params: { ...defaultsFor(archetype), ...params }, scenarios, selected };
 }
@@ -437,7 +450,7 @@ export const TASKFIT_PROFILE_OF = { document: "bulk", classification: "bulk", as
 // and the browsable table); weights may be a profile id (string) or a custom {key: 0-100} map.
 export function rankModels(models, opts = {}) {
   const { weights, profile = "bulk", minInt = 0, maxCost = null, creatorQuery = "", since = "", onlyComplete = false,
-    providers = null, inTokens = 0, outTokens = 0, cachedTokens = 0, limit = Infinity } = opts;
+    providers = null, minTps = 0, inTokens = 0, outTokens = 0, cachedTokens = 0, limit = Infinity } = opts;
   const w = weights || (TASKFIT_PROFILES[profile] || TASKFIT_PROFILES.bulk).w;
   const active = TASKFIT_METRICS.filter((m) => (w[m.key] || 0) > 0);
   const ranges = {};
@@ -452,6 +465,7 @@ export function rankModels(models, opts = {}) {
   const rows = [];
   for (const m of models) {
     if (minInt && (m.intelligence_index ?? -1) < minInt) continue;
+    if (minTps && (m.output_tokens_per_sec ?? 0) < minTps) continue;
     if (providers && !providers.has(m.creator || "Unknown")) continue;
     if (q && ![m.name, m.slug].some((v) => v && v.toLowerCase().includes(q))) continue;
     if (since && (!m.release_date || m.release_date < since)) continue;
@@ -476,11 +490,11 @@ export function taskFitRank(models, { profile = "bulk", minInt = 0, inTokens = 0
 // Cache/trim/shorten act on the monthly token pool; agent-depth-cap re-runs the real per-step formula (quadratic
 // growth included) rather than approximating it linearly. Everything here re-prices with the same priceTokens()
 // the sizing step uses, so the two never drift apart.
-export function tuneScenario(archetype, params, cfg, models, priceOverride, selectedScenario, levers = {}) {
+export function tuneScenario(archetype, params, cfg, models, priceOverride, selectedScenario, levers = {}, selection = {}) {
   const capSteps = archetype === "agentic" && levers.agentDepth != null;
   const cappedParams = capSteps ? { ...params, steps: Math.min(params.steps ?? defaultsFor("agentic").steps, levers.agentDepth) } : params;
-  const today = computeScenario(archetype, params, cfg, selectedScenario, models, priceOverride);
-  const base = capSteps ? computeScenario(archetype, cappedParams, cfg, selectedScenario, models, priceOverride) : today;
+  const today = computeScenario(archetype, params, cfg, selectedScenario, models, priceOverride, selection);
+  const base = capSteps ? computeScenario(archetype, cappedParams, cfg, selectedScenario, models, priceOverride, selection) : today;
 
   const totalInput = base.month.input + base.month.cached;
   const h0 = base.assumptions.h;
