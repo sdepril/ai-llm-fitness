@@ -258,10 +258,18 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
 
     <section class="panel" id="sec-model">
       <div class="hd"><span class="n">4</span><h2>Model</h2><span class="desc">Ranked for this workload. The best fit is priced automatically below — click any row to price that model instead.</span></div>
-      <div class="row" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
-        <div><label for="minInt" style="margin-top:0">Min. intelligence</label><input id="minInt" type="number" min="0" max="100" step="1" value="0"></div>
-        <div><label for="maxCost" style="margin-top:0">Max $ / month</label><input id="maxCost" type="number" min="0" step="10" placeholder="any"></div>
-        <div><label for="creator" style="margin-top:0">Model name contains</label><input id="creator" type="text" placeholder="optional"></div>
+      <div class="note" id="reqFloor" style="margin-bottom:14px"></div>
+      <div class="row" style="grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="w-row"><label for="minInt">Min. intelligence</label><input type="range" id="minInt" min="0" max="100" step="1" value="0"><output id="minIntO"></output></div>
+          <p class="w-help">Slide up for a smarter (usually pricier) model; the floor above is the minimum this workload needs.</p>
+        </div>
+        <div>
+          <div class="w-row"><label for="maxCost">Max $ / month</label><input type="range" id="maxCost" min="0" max="1000" step="10" value="1000"><output id="maxCostO"></output></div>
+          <p class="w-help">Budget ceiling at today's token volume. Dragged to the max = no ceiling.</p>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
         <div><label for="since" style="margin-top:0">Released after</label><input id="since" type="date"></div>
       </div>
       <label class="lbl" style="margin-top:10px"><input type="checkbox" id="complete" checked style="width:auto"> Only models with data for every weighted metric</label>
@@ -397,6 +405,7 @@ let customWeights = {};
 let providers = new Set();
 let pickedModel = null; // slug
 let minIntTouched = false;
+let maxCostTouched = false;
 const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)"];
 
 // ---------- archetype + fields ----------
@@ -506,7 +515,8 @@ $("weights").addEventListener("click", e => {
   renderWeights(); run();
 });
 $("minInt").addEventListener("input", () => { minIntTouched = true; run(); });
-["maxCost", "creator", "since", "complete"].forEach(id => $(id).addEventListener("input", run));
+$("maxCost").addEventListener("input", () => { maxCostTouched = true; run(); });
+["since", "complete"].forEach(id => $(id).addEventListener("input", run));
 
 // ---------- providers dropdown ----------
 function renderProviders() {
@@ -646,7 +656,26 @@ function run() {
   result = compute(currentArch, params, cfg, models, ov, selectedScenario);
   const b = selectedOf(result), p = result.params;
 
-  if (!minIntTouched) $("minInt").value = cfg.defaults.quality_thresholds[p.quality_bar || "medium"];
+  const floorInt = cfg.defaults.quality_thresholds[p.quality_bar || "medium"];
+  if (!minIntTouched) $("minInt").value = floorInt;
+
+  // dynamic ceiling for the cost slider, and the cheapest model meeting the archetype's floor
+  const monthlyFor = m => (m.usd_per_1m_input == null || m.usd_per_1m_output == null) ? null :
+    (b.month.input * m.usd_per_1m_input + b.month.cached * (m.usd_per_1m_cache_hit ?? m.usd_per_1m_input) + b.month.output * m.usd_per_1m_output) / 1e6;
+  let maxObserved = 0, floorCost = null;
+  for (const m of models) {
+    const monthly = monthlyFor(m); if (monthly == null) continue;
+    if (monthly > maxObserved) maxObserved = monthly;
+    if ((m.intelligence_index ?? -1) >= floorInt && (floorCost == null || monthly < floorCost)) floorCost = monthly;
+  }
+  const costCeiling = Math.max(100, Math.ceil(maxObserved / 50) * 50 || 100);
+  $("maxCost").max = costCeiling;
+  if (!maxCostTouched) $("maxCost").value = costCeiling;
+  $("reqFloor").innerHTML = !models.length
+    ? `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — fetch models below to see what that costs at today's token volume.`
+    : floorCost == null
+      ? `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — no priced model in the fetched list meets it yet.`
+      : `Based on steps 1 &amp; 2, this workload needs at least <b>${floorInt}</b> intelligence — the cheapest matching model runs from <b>${usd(floorCost)}</b>/month at today's token volume.`;
 
   // section 2: scenario cards
   const S = result.scenarios;
@@ -664,9 +693,11 @@ function run() {
   $("flags").innerHTML = fl.join("");
 
   // section 4: ranking
+  $("minIntO").textContent = $("minInt").value;
+  $("maxCostO").textContent = maxCostTouched && +$("maxCost").value < costCeiling ? "$" + $("maxCost").value : "any";
   const filters = { profile: profileId === "custom" ? undefined : profileId, weights: profileId === "custom" ? customWeights : undefined,
-    minInt: +$("minInt").value || 0, maxCost: $("maxCost").value === "" ? null : +$("maxCost").value,
-    creatorQuery: $("creator").value, since: $("since").value, onlyComplete: $("complete").checked,
+    minInt: +$("minInt").value || 0, maxCost: (maxCostTouched && +$("maxCost").value < costCeiling) ? +$("maxCost").value : null,
+    since: $("since").value, onlyComplete: $("complete").checked,
     providers, inTokens: b.month.input, outTokens: b.month.output, cachedTokens: b.month.cached };
   ranked = rankModels(models, filters);
   const sorted = sortRows(ranked.rows);
@@ -731,7 +762,7 @@ function run() {
 function meta() { return { name: $("m_name").value, outcome_unit: $("m_unit").value, count_source: $("m_count").value, quality_floor: $("m_floor").value }; }
 function saveState() {
   try { localStorage.setItem("nav_state", JSON.stringify({ archetype: currentArch, scenario: selectedScenario, params: readParams(), meta: meta(),
-    profileId, profileTouched, customWeights, minIntTouched, minInt: $("minInt").value, maxCost: $("maxCost").value, creator: $("creator").value, since: $("since").value, complete: $("complete").checked,
+    profileId, profileTouched, customWeights, minIntTouched, minInt: $("minInt").value, maxCostTouched, maxCost: $("maxCost").value, since: $("since").value, complete: $("complete").checked,
     pickedModel, p_in: $("p_in").value, p_out: $("p_out").value, p_cache: $("p_cache").value,
     tkLc: $("tkLc").value, tkLt: $("tkLt").value, tkLs: $("tkLs").value, tkLa: $("tkLa").value, tkV: $("tkV").value, tkSR: $("tkSR").value, tkTl: $("tkTl").value, tkTh: $("tkTh").value })); } catch {}
 }
@@ -746,7 +777,7 @@ function restoreState() {
     $("m_name").value = st.meta?.name || ""; $("m_unit").value = st.meta?.outcome_unit || ""; $("m_count").value = st.meta?.count_source || ""; $("m_floor").value = st.meta?.quality_floor || "";
     profileId = st.profileId || profileId; profileTouched = !!st.profileTouched; customWeights = st.customWeights || {};
     minIntTouched = !!st.minIntTouched; if (st.minInt != null) $("minInt").value = st.minInt;
-    if (st.maxCost != null) $("maxCost").value = st.maxCost; if (st.creator != null) $("creator").value = st.creator; if (st.since != null) $("since").value = st.since;
+    maxCostTouched = !!st.maxCostTouched; if (st.maxCost != null) $("maxCost").value = st.maxCost; if (st.since != null) $("since").value = st.since;
     if (st.complete != null) $("complete").checked = st.complete;
     pickedModel = st.pickedModel || null;
     if (st.p_in != null) $("p_in").value = st.p_in; if (st.p_out != null) $("p_out").value = st.p_out; if (st.p_cache != null) $("p_cache").value = st.p_cache;
