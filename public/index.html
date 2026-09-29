@@ -262,11 +262,11 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       <div class="row" style="grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div class="w-row"><label for="minInt">Min. intelligence</label><input type="range" id="minInt" min="0" max="100" step="1" value="0"><output id="minIntO"></output></div>
-          <p class="w-help">Slide up for a smarter (usually pricier) model; the floor above is the minimum this workload needs.</p>
+          <p class="w-help">Hard floor from step 2's priorities — can't go lower. Slide up to require a smarter (usually pricier) model.</p>
         </div>
         <div>
           <div class="w-row"><label for="maxCost">Max $ / month</label><input type="range" id="maxCost" min="0" max="1000" step="10" value="1000"><output id="maxCostO"></output></div>
-          <p class="w-help">Budget ceiling at today's token volume. Dragged to the max = no ceiling.</p>
+          <p class="w-help">Ceiling at today's token volume. Can't drop below the cheapest model that still clears the intelligence floor. Dragged to the max = no ceiling.</p>
         </div>
       </div>
       <div class="row" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
@@ -364,7 +364,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
 </div>
 
 <script type="module">
-import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS, intelligenceFloor } from "./engine.js";
+import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS, intelligenceFloor, priceTokens } from "./engine.js";
 
 const $ = id => document.getElementById(id);
 const cfg = await (await fetch("./config.json")).json();
@@ -656,36 +656,50 @@ function run() {
   params.intelligence_weight = intelligenceWeight;
   const ov = priceOverride();
 
+  // Hard floor: this slider can never go below what step 2's priorities require.
   const floorInt = intelligenceFloor(intelligenceWeight, cfg);
-  if (!minIntTouched) $("minInt").value = floorInt;
+  $("minInt").min = floorInt;
+  if (!minIntTouched || +$("minInt").value < floorInt) $("minInt").value = floorInt;
+  const minIntelligence = +$("minInt").value || 0;
 
   // The full set of step-2 priorities (all 7 categories, not just Intelligence) drives which model
   // actually gets priced — the same weighted fit-score ranking the step-4 table uses.
-  const selection = {
+  const baseSelection = {
     profile: profileId === "custom" ? undefined : profileId,
     weights: profileId === "custom" ? customWeights : undefined,
-    minIntelligence: +$("minInt").value || 0,
-    maxCost: maxCostTouched ? (+$("maxCost").value || null) : null,
+    minIntelligence,
     since: $("since").value, onlyComplete: $("complete").checked, providers,
   };
-  result = compute(currentArch, params, cfg, models, ov, selectedScenario, selection);
-  const b = selectedOf(result), p = result.params;
 
-  // dynamic ceiling for the cost slider — display only, independent of which model got selected
-  const monthlyFor = m => (m.usd_per_1m_input == null || m.usd_per_1m_output == null) ? null :
-    (b.month.input * m.usd_per_1m_input + b.month.cached * (m.usd_per_1m_cache_hit ?? m.usd_per_1m_input) + b.month.output * m.usd_per_1m_output) / 1e6;
-  let maxObserved = 0;
-  for (const m of models) { const monthly = monthlyFor(m); if (monthly != null && monthly > maxObserved) maxObserved = monthly; }
+  // Probe pass (uncapped): get this workload's sized token volume and the cheapest priced model
+  // that still clears the intelligence floor — that price is the hard floor for the cost slider,
+  // since any lower cap would exclude every model that still meets the requirement.
+  const probe = compute(currentArch, params, cfg, models, ov, selectedScenario, { ...baseSelection, maxCost: null });
+  const bProbe = selectedOf(probe);
+  const monthlyFor = m => priceTokens(m, bProbe.month, bProbe.assumptions.batch_factor);
+  let maxObserved = 0, costFloor = null;
+  for (const m of models) {
+    const monthly = monthlyFor(m); if (monthly == null) continue;
+    if (monthly > maxObserved) maxObserved = monthly;
+    if ((m.intelligence_index ?? -1) >= minIntelligence && (costFloor == null || monthly < costFloor)) costFloor = monthly;
+  }
   const costCeiling = Math.max(100, Math.ceil(maxObserved / 50) * 50 || 100);
   $("maxCost").max = costCeiling;
+  $("maxCost").min = costFloor != null ? Math.ceil(costFloor) : 0;
   if (!maxCostTouched) $("maxCost").value = costCeiling;
+  else if (costFloor != null && +$("maxCost").value < costFloor) $("maxCost").value = Math.ceil(costFloor);
+
+  const maxCost = maxCostTouched ? (+$("maxCost").value || null) : null;
+  const selection = { ...baseSelection, maxCost };
+  result = compute(currentArch, params, cfg, models, ov, selectedScenario, selection);
+  const b = selectedOf(result), p = result.params;
 
   const usedModel = b.model.used;
   $("reqFloor").innerHTML = !models.length
     ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — fetch models below to see what this workload's best fit costs at today's token volume (step 3).`
     : !usedModel
-      ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — no priced model in the fetched list meets the current filters.`
-      : `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — the best fit for this workload, <b>${esc(usedModel.name)}</b>, runs <b>${usd(b.cost.model_usd_month)}</b>/month at today's token volume (step 3).`;
+      ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> (min <b>${costFloor == null ? "—" : usd(costFloor)}</b>/month) — no priced model in the fetched list meets the current filters.`
+      : `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> (min <b>${usd(costFloor)}</b>/month) — the best fit for this workload, <b>${esc(usedModel.name)}</b>, runs <b>${usd(b.cost.model_usd_month)}</b>/month at today's token volume (step 3).`;
 
   // section 2: scenario cards
   const S = result.scenarios;
@@ -704,11 +718,11 @@ function run() {
 
   // section 4: ranking
   $("minIntO").textContent = $("minInt").value;
-  $("maxCostO").textContent = maxCostTouched && +$("maxCost").value < costCeiling ? "$" + $("maxCost").value : "any";
-  const filters = { profile: profileId === "custom" ? undefined : profileId, weights: profileId === "custom" ? customWeights : undefined,
-    minInt: +$("minInt").value || 0, maxCost: (maxCostTouched && +$("maxCost").value < costCeiling) ? +$("maxCost").value : null,
-    since: $("since").value, onlyComplete: $("complete").checked,
-    providers, inTokens: b.month.input, outTokens: b.month.output, cachedTokens: b.month.cached };
+  $("maxCostO").textContent = maxCost != null ? "$" + maxCost : "any";
+  const filters = { profile: baseSelection.profile, weights: baseSelection.weights,
+    minInt: minIntelligence, maxCost,
+    since: baseSelection.since, onlyComplete: baseSelection.onlyComplete,
+    providers, inTokens: b.month.input, outTokens: b.month.output, cachedTokens: b.month.cached, batchFactor: b.assumptions.batch_factor };
   ranked = rankModels(models, filters);
   const sorted = sortRows(ranked.rows);
   renderTable(sorted); renderChart(ranked.rows); renderH2H(ranked.rows);

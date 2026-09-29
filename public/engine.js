@@ -225,10 +225,10 @@ export function intelligenceFloor(weight, cfg) {
 // max $/month, released-after, only-complete, providers) plus a latency-driven tokens/sec floor.
 export function selectModel(models, opts, cfg) {
   const { weights, profile, minIntelligence = 0, maxCost = null, since = "", onlyComplete = false, providers = null,
-    latency, contextNeeded, inTokens = 0, outTokens = 0, cachedTokens = 0 } = opts;
+    latency, contextNeeded, inTokens = 0, outTokens = 0, cachedTokens = 0, batchFactor = 1 } = opts;
   if (!models || !models.length) return { recommended: null, defaultAlternative: null, candidates: [], note: "No model data loaded — enter prices manually." };
   const minTps = cfg.defaults.latency_min_tps[latency ?? "batch"];
-  const ranked = rankModels(models, { weights, profile, minInt: minIntelligence, maxCost, since, onlyComplete, providers, minTps, inTokens, outTokens, cachedTokens });
+  const ranked = rankModels(models, { weights, profile, minInt: minIntelligence, maxCost, since, onlyComplete, providers, minTps, inTokens, outTokens, cachedTokens, batchFactor });
   const priced = ranked.rows.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
   const priceOnly = models.filter(m => m.usd_per_1m_input != null && m.usd_per_1m_output != null);
   const smartest = [...priceOnly].sort((a, b) => (b.intelligence_index ?? 0) - (a.intelligence_index ?? 0))[0] || null;
@@ -314,7 +314,7 @@ export function computeScenario(archetype, params, cfg, scenarioName, models, pr
     minIntelligence, maxCost: selection.maxCost ?? null, since: selection.since ?? "",
     onlyComplete: selection.onlyComplete ?? false, providers: selection.providers ?? null,
     latency: p.latency, contextNeeded: T.contextNeeded,
-    inTokens: input, outTokens: output, cachedTokens: cached,
+    inTokens: input, outTokens: output, cachedTokens: cached, batchFactor,
   }, cfg);
   const model = priceOverride || sel.recommended;
   const modelCostUsd = priceTokens(model, { input, cached, output }, batchFactor);
@@ -450,7 +450,7 @@ export const TASKFIT_PROFILE_OF = { document: "bulk", classification: "bulk", as
 // and the browsable table); weights may be a profile id (string) or a custom {key: 0-100} map.
 export function rankModels(models, opts = {}) {
   const { weights, profile = "bulk", minInt = 0, maxCost = null, creatorQuery = "", since = "", onlyComplete = false,
-    providers = null, minTps = 0, inTokens = 0, outTokens = 0, cachedTokens = 0, limit = Infinity } = opts;
+    providers = null, minTps = 0, inTokens = 0, outTokens = 0, cachedTokens = 0, batchFactor = 1, limit = Infinity } = opts;
   const w = weights || (TASKFIT_PROFILES[profile] || TASKFIT_PROFILES.bulk).w;
   const active = TASKFIT_METRICS.filter((m) => (w[m.key] || 0) > 0);
   const ranges = {};
@@ -474,7 +474,7 @@ export function rankModels(models, opts = {}) {
     if (!active.length || !wsum) continue;
     if (onlyComplete && missing) continue;
     const priced = m.usd_per_1m_input != null && m.usd_per_1m_output != null;
-    const monthly = priced ? (inTokens * m.usd_per_1m_input + cachedTokens * (m.usd_per_1m_cache_hit ?? m.usd_per_1m_input) + outTokens * m.usd_per_1m_output) / 1e6 : null;
+    const monthly = priced ? (inTokens * m.usd_per_1m_input + cachedTokens * (m.usd_per_1m_cache_hit ?? m.usd_per_1m_input) + outTokens * m.usd_per_1m_output) / 1e6 * batchFactor : null;
     if (maxCost != null && (monthly == null || monthly > maxCost)) continue;
     rows.push({ ...m, fit: sum / wsum, partial: missing > 0, monthly });
   }
