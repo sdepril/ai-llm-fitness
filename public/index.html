@@ -180,6 +180,15 @@ tbody tr:hover { background:#fcfaf6 }
 .kpi .k { font-size:11px; color:rgba(234,221,193,.85); text-transform:uppercase; letter-spacing:.09em; font-weight:600 }
 .kpi .v { font-size:23px; font-weight:700; margin:6px 0 2px; color:#fff; letter-spacing:-.01em }
 .kpi .s { font-size:12px; color:rgba(255,255,255,.62) }
+.kpis-sub { font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-2); margin:0 0 8px; font-weight:600 }
+.kpis-sub span { text-transform:none; letter-spacing:0; font-weight:400 }
+details.collapse { border:1px solid var(--border); border-radius:12px; padding:2px 14px; background:var(--surface-2) }
+details.collapse[open] { padding-bottom:14px }
+details.collapse summary { cursor:pointer; padding:11px 0; font-weight:600; font-size:13.5px; color:var(--text); list-style:none; display:flex; align-items:center; gap:8px }
+details.collapse summary::-webkit-details-marker { display:none }
+details.collapse summary::before { content:"▸"; color:var(--accent-deep); transition:transform .15s; font-size:11px }
+details.collapse[open] summary::before { transform:rotate(90deg) }
+details.collapse summary:hover { color:var(--accent-deep) }
 .lever { display:grid; grid-template-columns:150px 1fr 130px; gap:12px; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px }
 .lever:last-child { border-bottom:0 }
 .lever .bar { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin:0 }
@@ -337,8 +346,17 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       <h3 style="margin-top:18px">Bill of materials <span style="text-transform:none;letter-spacing:0;font-weight:400">(base scenario)</span></h3>
       <table id="bom"><thead><tr><th style="text-align:left">Component</th><th style="text-align:left">Role</th><th style="text-align:left">SKU hint</th><th>Quantity</th><th style="text-align:left">Unit</th><th style="text-align:left">Source</th></tr></thead><tbody></tbody></table>
 
-      <h3 style="margin-top:26px">Business case <span style="text-transform:none;letter-spacing:0;font-weight:400">— vs. the manual baseline from step 1, before any tuning</span></h3>
-      <div class="kpis" id="bizKpis"></div>
+      <h3 style="margin-top:26px">Business case <span style="text-transform:none;letter-spacing:0;font-weight:400">— before vs. after the optimization levers below</span></h3>
+      <div class="grid2">
+        <div>
+          <h4 class="kpis-sub">Before tuning <span>vs. the manual baseline from step 1</span></h4>
+          <div class="kpis" id="bizKpis"></div>
+        </div>
+        <div>
+          <h4 class="kpis-sub">After tuning <span>with the levers below applied</span></h4>
+          <div class="kpis" id="tkKpis"></div>
+        </div>
+      </div>
 
       <h3 style="margin-top:26px">Optimization levers <span style="text-transform:none;letter-spacing:0;font-weight:400">— what-ifs on top of the priced model above</span></h3>
       <div class="grid2">
@@ -360,7 +378,6 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
           <p class="help">Total cost of AI includes infra, tooling and people around the model call — tokens are typically only 10–25% of it. Replace with your own figures when known. Only fill in "extra value" if AI creates value beyond replacing the manual baseline above (e.g. it does more, or faster than the business case above already counts) — otherwise leave it blank.</p>
         </div>
       </div>
-      <div class="kpis" id="tkKpis" style="margin-top:18px"></div>
       <h3>Unit economics: today vs. optimized</h3>
       <div class="table-wrap" style="border:0"><table class="cmp-table" id="tkTable"></table></div>
       <div id="notes" style="margin-top:16px"></div>
@@ -368,12 +385,15 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
 
     <section class="panel reveal" id="sec-export">
       <div class="hd"><span class="n">6</span><h2>Export</h2></div>
-      <div class="btns">
-        <button class="btn primary" id="dlJson">Download bom.json</button>
-        <button class="btn" id="dlMd">Download architecture.md</button>
-        <button class="btn ghost" id="copyMd">Copy markdown for Azure estimator</button>
-        <button class="btn" id="csv">Export model table (CSV)</button>
-      </div>
+      <details class="collapse">
+        <summary>Download options</summary>
+        <div class="btns">
+          <button class="btn primary" id="dlJson">Download bom.json</button>
+          <button class="btn" id="dlMd">Download architecture.md</button>
+          <button class="btn ghost" id="copyMd">Copy markdown for Azure estimator</button>
+          <button class="btn" id="csv">Export model table (CSV)</button>
+        </div>
+      </details>
     </section>
 
     <footer>
@@ -807,7 +827,7 @@ function run() {
   </tbody>`;
 
   const src = cfg.sources;
-  $("notes").innerHTML = b.notes.map(n => `<div class="note">${n}</div>`).join("") + `<div class="consult"><table><thead><tr><th>Assumption</th><th>Value</th><th>Source</th><th>Status</th></tr></thead><tbody>${Object.entries(src).map(([k, v]) => `<tr><td>${k}</td><td>${JSON.stringify(k.split(".").reduce((o, s) => o?.[s], cfg.defaults))}</td><td style="color:var(--text-2)">${v.source}</td><td>${v.status}</td></tr>`).join("")}</tbody></table></div>`;
+  $("notes").innerHTML = b.notes.map(n => `<div class="note">${n}</div>`).join("") + `<details class="collapse" style="margin-top:10px"><summary>Assumptions &amp; audit trail</summary><div class="consult"><table><thead><tr><th>Assumption</th><th>Value</th><th>Source</th><th>Status</th></tr></thead><tbody>${Object.entries(src).map(([k, v]) => `<tr><td>${k}</td><td>${JSON.stringify(k.split(".").reduce((o, s) => o?.[s], cfg.defaults))}</td><td style="color:var(--text-2)">${v.source}</td><td>${v.status}</td></tr>`).join("")}</tbody></table></div></details>`;
 
   saveState();
 }
