@@ -209,7 +209,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </header>
     <nav class="stepnav">
       <a href="#sec-usecase">1 · Use case</a><a href="#sec-sizing">2 · Token profile</a><a href="#sec-priorities">3 · Priorities</a>
-      <a href="#sec-model">4 · Model</a><a href="#sec-cost">5 · Cost &amp; tuning</a><a href="#sec-export">6 · Export</a>
+      <a href="#sec-model">4 · Model</a><a href="#sec-cost">5 · Business case</a><a href="#sec-export">6 · Export</a>
     </nav>
 
     <section class="panel" id="sec-usecase">
@@ -302,12 +302,15 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </section>
 
     <section class="panel" id="sec-cost">
-      <div class="hd"><span class="n">5</span><h2>Cost &amp; tuning</h2><span class="desc">Model + embeddings only — infra via the Azure estimator, labour via the ledger.</span></div>
+      <div class="hd"><span class="n">5</span><h2>Business case</h2><span class="desc">Sizing → model → what it's worth. Model + embeddings only — infra via the Azure estimator, labour via the ledger.</span></div>
       <div class="scen" id="cscen"></div>
       <h3 style="margin-top:22px">Model</h3>
       <div id="model"></div>
       <h3 style="margin-top:18px">Bill of materials <span style="text-transform:none;letter-spacing:0;font-weight:400">(base scenario)</span></h3>
       <table id="bom"><thead><tr><th style="text-align:left">Component</th><th style="text-align:left">Role</th><th style="text-align:left">SKU hint</th><th>Quantity</th><th style="text-align:left">Unit</th><th style="text-align:left">Source</th></tr></thead><tbody></tbody></table>
+
+      <h3 style="margin-top:26px">Business case <span style="text-transform:none;letter-spacing:0;font-weight:400">— vs. the manual baseline from step 1, before any tuning</span></h3>
+      <div class="kpis" id="bizKpis"></div>
 
       <h3 style="margin-top:26px">Optimization levers <span style="text-transform:none;letter-spacing:0;font-weight:400">— what-ifs on top of the priced model above</span></h3>
       <div class="grid2">
@@ -322,11 +325,11 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
           <p class="w-help" id="tkLaHelp">Agentic archetype only — stops runaway loops.</p>
         </div>
         <div>
-          <div class="row"><div><label for="tkV" style="margin-top:0">Value per success (EUR)</label><input id="tkV" type="number" min="0" step="1" placeholder="optional"></div>
+          <div class="row"><div><label for="tkV" style="margin-top:0">Extra value per success (EUR)</label><input id="tkV" type="number" min="0" step="1" placeholder="optional — beyond replacing manual work"></div>
             <div><label for="tkSR" style="margin-top:0">Success rate override (%)</label><input id="tkSR" type="number" min="1" max="100" step="1" placeholder="from use case"></div></div>
           <div class="row"><div><label for="tkTl" style="margin-top:0">Tokens: low % of AI spend</label><input id="tkTl" type="number" min="1" max="100" step="1" value="10"></div>
             <div><label for="tkTh" style="margin-top:0">Tokens: high % of AI spend</label><input id="tkTh" type="number" min="1" max="100" step="1" value="25"></div></div>
-          <p class="help">Total cost of AI includes infra, tooling and people around the model call — tokens are typically only 10–25% of it. Replace with your own figures when known.</p>
+          <p class="help">Total cost of AI includes infra, tooling and people around the model call — tokens are typically only 10–25% of it. Replace with your own figures when known. Only fill in "extra value" if AI creates value beyond replacing the manual baseline above (e.g. it does more, or faster than the business case above already counts) — otherwise leave it blank.</p>
         </div>
       </div>
       <div class="kpis" id="tkKpis" style="margin-top:18px"></div>
@@ -651,7 +654,7 @@ function run() {
     return `<div class="sc${s === result.selected ? " active" : ""}" data-sc="${s}" title="Make this the active scenario"><h4>${s}${s === result.selected ? " · active" : ""}</h4>
       <div class="big">${eur(cpo)} <small>per ${result.unit}</small></div>
       <div class="bar"><i style="width:${cpo != null && bl > 0 ? Math.min(100, 100 * cpo / bl) : 0}%"></i></div>
-      <div class="help">baseline today ${eur(bl)}</div>
+      <div class="help">baseline today ${eur(bl)} · cache hit ~${Math.round((r.assumptions?.h ?? 0) * 100)}%</div>
       <div class="kv"><span>units/mo</span><span>${fmt(r.month.units)}</span><span>input</span><span>${fmt(r.month.input)}</span><span>cached</span><span>${fmt(r.month.cached)}</span><span>output</span><span>${fmt(r.month.output)}</span></div></div>`; }).join("");
   const fl = [];
   if (b.flags.unbounded) fl.push(`<div class="note warn"><b>T(∞)</b> — no hard stop per task: cost is unbounded. Set a max tokens per task.</div>`);
@@ -689,9 +692,22 @@ function run() {
   const A = row(today), B = row(optd);
   const delta = (a, b) => { if (!a) return ""; const d = Math.round((a - b) / a * 100); return d > 0 ? `<span class="good">−${d}%</span>` : '<span class="na">–</span>'; };
   const ek = v => v == null ? '<span class="na">–</span>' : eur(v);
-  const roi = (m, l, h) => val == null || !m ? null : { lo: val / (m / h), hi: val / (m / l) };
-  const roiA = roi(A.month, lo, hi), roiB = roi(B.month, lo, hi);
+  const roi = (val, m, l, h) => val == null || !m ? null : { lo: val / (m / l), hi: val / (m / h) };
+  const roiA = roi(val, A.month, lo, hi), roiB = roi(val, B.month, lo, hi);
   const roiTxt = r => r == null ? '<span class="na">–</span>' : `${r.lo.toFixed(1)}× – ${r.hi.toFixed(1)}×`;
+
+  // business case: baseline (manual) vs AI today, before any tuning — zero extra input required
+  const baselineMonthly = b.cost.outcomes_month * b.cost.baseline_per_outcome_eur;
+  const aiMonthly = A.month;
+  const savingsMonthly = aiMonthly == null ? null : baselineMonthly - aiMonthly;
+  const roiBiz = roi(savingsMonthly, aiMonthly, lo, hi);
+  $("bizKpis").innerHTML = [
+    ["Baseline cost (manual)", ek(baselineMonthly), `${fmt(b.cost.outcomes_month)} outcomes/mo × ${ek(b.cost.baseline_per_outcome_eur)}`],
+    ["AI cost today", ek(aiMonthly), aiMonthly == null ? "no model priced yet" : `total cost of AI ${ek(A.tcaLo)} – ${ek(A.tcaHi)}`],
+    ["Monthly savings", savingsMonthly == null ? '<span class="na">–</span>' : ek(savingsMonthly), savingsMonthly == null ? "" : (savingsMonthly >= 0 ? "vs. doing this manually" : '<span style="color:#7C2D12">AI costs more than manual, today</span>')],
+    ["ROI vs. total cost of AI", roiTxt(roiBiz), `tokens = ${Math.round(lo * 100)}–${Math.round(hi * 100)}% of AI spend`],
+  ].map(([k, v, sub]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("");
+
   $("tkKpis").innerHTML = [
     ["Monthly model cost", ek(B.month), `today ${ek(A.month)}`],
     ["Cost per outcome", ek(B.perOutcome), `today ${ek(A.perOutcome)}`],
