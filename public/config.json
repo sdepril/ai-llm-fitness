@@ -1,0 +1,121 @@
+{
+  "spec_version": "0.1",
+  "note": "Every value is an assumption with a source and a status. Prices never live here: model prices come from the Artificial Analysis MCP, infra prices from the Azure Pricing MCP / estimator.",
+  "defaults": {
+    "tpw": {
+      "en": 1.33,
+      "nl": 1.8,
+      "fr": 1.6,
+      "de": 1.7
+    },
+    "wpp": {
+      "prose": 500,
+      "legal": 600,
+      "form": 250,
+      "slides": 120
+    },
+    "tokens_per_field": 15,
+    "o_chunk": 300,
+    "retry_rate": 0.15,
+    "eval_fraction": 0.1,
+    "guardrail_fraction": 0.2,
+    "cache_hit_system_prompt": 0.7,
+    "batch_factor": 0.5,
+    "working_days": 22,
+    "success_rate": 0.85,
+    "context_margin": 1.2,
+    "default_context_window": 128000,
+    "quality_thresholds": {
+      "low": 40,
+      "medium": 55,
+      "high": 70
+    },
+    "latency_min_tps": {
+      "batch": 0,
+      "background": 20,
+      "interactive": 60
+    },
+    "ptu_breakeven_tokens_month": 300000000,
+    "ptu_max_daily_variation": 0.3,
+    "log_kb_per_request": 4,
+    "avg_doc_mb": 0.5,
+    "vector_dims": 1536,
+    "chunk_tokens": 400,
+    "embedding_usd_per_1m": 0.1,
+    "usd_to_eur": 0.92
+  },
+  "scenarios": {
+    "low": {
+      "tpw": 0.9,
+      "a_override": 1.0,
+      "h_delta": 0.2,
+      "steps": 0.7
+    },
+    "base": {
+      "tpw": 1.0,
+      "a_override": null,
+      "h_delta": 0.0,
+      "steps": 1.0
+    },
+    "high": {
+      "tpw": 1.25,
+      "a_mult": 1.5,
+      "h_delta": -0.2,
+      "steps": 2.0
+    }
+  },
+  "sources": {
+    "tpw.en": {
+      "source": "Rule of thumb 1 token ≈ 0.75 words (OpenAI)",
+      "status": "to-verify with tiktoken on own sample"
+    },
+    "tpw.nl": {
+      "source": "Subword tokenisers split Dutch heavier; order of magnitude",
+      "status": "to-verify — measure on 10 client documents"
+    },
+    "wpp.prose": {
+      "source": "A4 running text convention",
+      "status": "ok as default, override per document type"
+    },
+    "wpp.legal": {
+      "source": "Denser typesetting",
+      "status": "to-verify"
+    },
+    "tokens_per_field": {
+      "source": "key + value + JSON syntax",
+      "status": "to-verify"
+    },
+    "o_chunk": {
+      "source": "map-reduce intermediate output",
+      "status": "to-verify"
+    },
+    "cache_hit_system_prompt": {
+      "source": "Requires stable prefix ≥ provider minimum cache length",
+      "status": "to-verify per provider"
+    },
+    "batch_factor": {
+      "source": "Batch API ~50% discount",
+      "status": "to-verify per provider"
+    },
+    "quality_thresholds": {
+      "source": "Artificial Analysis Intelligence Index; scale changes per version",
+      "status": "to-verify at each AA refresh"
+    },
+    "ptu_breakeven_tokens_month": {
+      "source": "Placeholder; link to PTU break-even calculator",
+      "status": "to-verify"
+    },
+    "embedding_usd_per_1m": {
+      "source": "Typical embedding list price",
+      "status": "to-verify via AA / provider"
+    },
+    "usd_to_eur": {
+      "source": "Placeholder FX",
+      "status": "set per engagement"
+    }
+  },
+  "links": {
+    "taskfit_url": "https://artificial-analysis-mcp.vercel.app/",
+    "note": "LLM Task-Fit (Costra AA app). The capture hands over workload, quality bar and tokenomics inputs via URL parameters."
+  }
+}

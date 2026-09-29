@@ -1,0 +1,7 @@
+{
+  "name": "costra-ai-costing",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22.x" },
+  "scripts": { "test": "node --test test/*.test.js", "cli": "node scripts/cli.js" }
+}

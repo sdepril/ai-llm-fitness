@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Cost Navigator · Costra</title>
+<link rel="icon" href="https://new.costra.io/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root {
+  color-scheme: light;
+  --bg:#f8f8f8; --hero:#fff9ec; --surface:#ffffff; --surface-2:#f3f0ea; --border:#e9e4dc;
+  --text:#0d2443; --text-2:#52657d; --text-3:#8a95a5;
+  --accent:#ed744b; --accent-soft:#fdf1ea; --muted-mark:#d6d1c8;
+  --navy:#1a3356; --navy-2:#061a36; --cream:#eaddc1;
+  --warn:#b45309; --good:#2f6f4e;
+  --s1:#e8622c; --s2:#009689; --s3:#3a6fd8;
+  --radius:20px;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+* { box-sizing:border-box }
+[hidden] { display:none !important }
+body { margin:0; background:linear-gradient(180deg, var(--hero) 0, var(--bg) 520px) no-repeat, var(--bg); color:var(--text); font-size:14.5px; line-height:1.45 }
+h1,h2,h3,.chart-title,.kpi .v,.brand-app { font-family:Poppins, Inter, ui-sans-serif, sans-serif }
+a { color:var(--accent) }
+.wrap { max-width:1200px; margin:0 auto; padding:24px 16px 48px }
+.topbar { display:flex; align-items:center; gap:14px; background:#fff; border:1px solid var(--border); border-radius:999px; padding:10px 18px 10px 22px; box-shadow:0 1px 2px rgba(13,36,67,.04); margin-bottom:28px; flex-wrap:wrap }
+.topbar img { height:22px; width:auto; display:block }
+.topbar .sep { width:1px; height:20px; background:var(--border) }
+.brand-app { font-weight:600; font-size:15px }
+.topbar .meta { margin-left:auto; text-align:right; color:var(--text-3); font-size:12px }
+header.hero { margin-bottom:22px }
+header.hero h1 { font-size:32px; line-height:1.12; font-weight:600; letter-spacing:-0.02em; margin:0 }
+header.hero .sub { font-size:16px; line-height:1.6; color:var(--text-2); margin-top:8px; max-width:760px }
+.stepnav { display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 26px; position:sticky; top:8px; z-index:8 }
+.stepnav a { font-size:12.5px; font-weight:500; color:var(--text-2); background:#fff; border:1px solid var(--border); border-radius:999px; padding:6px 12px; text-decoration:none }
+.stepnav a:hover { border-color:var(--accent); color:var(--accent) }
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; margin-bottom:22px; scroll-margin-top:70px }
+.panel > .hd { display:flex; align-items:baseline; gap:10px; margin-bottom:16px }
+.panel > .hd .n { width:26px; height:26px; border-radius:50%; background:var(--navy); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:none }
+.panel > .hd h2 { margin:0; font-size:18px; font-weight:600; letter-spacing:-.01em }
+.panel > .hd .desc { color:var(--text-2); font-size:12.5px; margin-left:auto; text-align:right; max-width:420px }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:22px }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px }
+@media (max-width:900px) { .grid2, .grid3 { grid-template-columns:1fr } }
+h3 { font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-2); margin:0 0 10px; font-weight:600 }
+label { display:block; font-size:12.5px; color:var(--text-2); margin-top:9px }
+input, select, textarea, button { font:inherit; width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:#fff; color:var(--text) }
+input:focus, select:focus { outline:2px solid var(--accent); outline-offset:1px; border-color:transparent }
+input[type=checkbox] { width:auto; margin-right:6px }
+.row { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+.help { display:block; font-size:11px; color:var(--text-3); margin-top:3px; line-height:1.35 }
+button { cursor:pointer; font-weight:500 }
+.btn { border-radius:999px; padding:8px 16px; font-weight:500; background:#fff; border:1px solid var(--border); width:auto }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff }
+.btn.primary:hover { filter:brightness(.95) }
+.btn.ghost { background:transparent }
+.btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
+.lbl { display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-2); margin-top:10px }
+.info { position:relative; display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%; border:1px solid var(--text-3); color:var(--text-3); font-size:10px; font-weight:700; cursor:help; flex:none }
+.info:hover, .info.open { border-color:var(--accent); color:var(--accent) }
+.info .tip { display:none; position:absolute; left:20px; top:50%; transform:translateY(-50%); z-index:5; width:260px; background:var(--navy); color:#fff; font:12px/1.4 Inter, sans-serif; font-weight:400; padding:8px 10px; border-radius:8px; box-shadow:0 6px 20px rgba(13,36,67,.18) }
+.info:hover .tip, .info.open .tip { display:block }
+.seg { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px }
+.seg button { width:auto; padding:6px 12px; border-radius:999px; background:#fff; border:1px solid var(--border); color:var(--text); font-weight:500; font-size:12.5px }
+.seg button:hover { border-color:var(--accent) }
+.seg button.on { background:var(--navy); border-color:var(--navy); color:#fff }
+.seg button.on.yes { background:var(--accent); border-color:var(--accent) }
+.arch { display:grid; gap:6px; margin-top:4px }
+.arch button { width:100%; text-align:left; padding:9px 11px; border-radius:12px; background:#fff; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:8px }
+.arch button:hover { border-color:var(--accent) }
+.arch button.on { border-color:var(--navy); background:var(--surface-2) }
+.arch .t { font-weight:600; font-size:12.5px } .arch .m { font-size:10.5px; color:var(--text-3); white-space:nowrap }
+.arch button.on .m { color:var(--accent) }
+.scen { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+@media (max-width:700px) { .scen { grid-template-columns:1fr } }
+.sc { border-radius:16px; padding:16px; background:var(--surface-2); cursor:pointer; transition:transform .12s, box-shadow .12s }
+.sc:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(13,36,67,.1) }
+.sc.active { background:linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%); color:#fff }
+.sc h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-2); font-weight:600 } .sc.active h4 { color:rgba(255,255,255,.6) }
+.big { font-size:26px; font-weight:600; line-height:1.1 } .sc.active .big { color:#fff }
+.big small { font-size:12px; font-weight:400; color:var(--text-2) } .sc.active .big small { color:rgba(255,255,255,.6) }
+.kv { display:grid; grid-template-columns:auto 1fr; gap:2px 10px; font-size:12px; margin-top:8px } .kv span:nth-child(odd) { color:var(--text-2) } .sc.active .kv span:nth-child(odd) { color:rgba(255,255,255,.6) }
+.sc .help { color:var(--text-2) } .sc.active .help { color:rgba(255,255,255,.7) }
+.bar { height:6px; background:rgba(13,36,67,.08); border-radius:3px; overflow:hidden; margin-top:6px } .bar i { display:block; height:100%; background:var(--accent) } .sc.active .bar { background:rgba(255,255,255,.15) }
+.note { background:var(--surface-2); border-radius:10px; padding:8px 12px; font-size:12.5px; margin-top:8px }
+.note.warn { background:#FDECE4; color:#7C2D12 }
+.pill { display:inline-block; padding:1px 9px; border-radius:999px; font-size:11px; background:var(--accent); color:#fff; font-weight:600 }
+code { font-size:11px; background:var(--surface-2); padding:0 4px; border-radius:4px }
+.gate { max-width:420px; margin:12vh auto; text-align:left }
+.gate img { height:26px; margin-bottom:18px }
+.gate .panel { padding:22px }
+.gate h1 { font-size:24px }
+.err { color:#c43d3c; font-size:12.5px }
+.profiles { display:flex; flex-wrap:wrap; gap:6px }
+.profiles button { border:1px solid var(--border); background:#fff; color:var(--text); border-radius:999px; padding:6px 12px; font-size:13px; width:auto }
+.profiles button[aria-pressed="true"] { background:var(--navy); border-color:var(--navy); color:#fff }
+.profile-desc { color:var(--text-2); font-size:12.5px; margin:10px 0 0 }
+.wt-row { margin:0 0 14px }
+.wt-q { font-size:13px; margin:0 0 7px } .wt-q b { font-weight:600 }
+.wt-levels { display:flex; gap:4px }
+.wt-levels button { flex:1; border:1px solid var(--border); background:var(--surface-2); color:var(--text-2); border-radius:8px; padding:7px 3px; font-size:10.5px; line-height:1.25; text-align:center; width:auto }
+.wt-levels button[aria-pressed="true"] { background:var(--navy); border-color:var(--navy); color:#fff; font-weight:600 }
+.wt-levels button:hover:not([aria-pressed="true"]) { border-color:var(--navy) }
+.filterbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:14px }
+.dd { position:relative }
+.dd-btn { display:inline-flex; align-items:center; gap:8px; font-size:13.5px; padding:8px 14px; border:1px solid var(--border); border-radius:999px; background:#fff; color:var(--text); cursor:pointer; width:auto }
+.dd-btn:hover, .dd-btn[aria-expanded="true"] { border-color:var(--text-3) }
+.dd-key { color:var(--text-2) }
+#provSummary { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px }
+.caret { color:var(--text-3); font-size:11px }
+.dd-panel { position:absolute; z-index:20; top:calc(100% + 6px); left:0; width:280px; max-width:calc(100vw - 32px); background:#fff; border:1px solid var(--border); border-radius:16px; box-shadow:0 12px 32px rgba(13,36,67,.12); padding:10px }
+.dd-panel input[type=search] { border-radius:10px }
+.dd-actions { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:12.5px; margin:8px 2px }
+.dd-list { max-height:280px; overflow-y:auto; margin:0 -4px }
+.dd-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; font-size:13px; cursor:pointer }
+.dd-item:hover { background:var(--surface-2) }
+.dd-item input { margin:0 }
+.dd-item span { flex:1 }
+.dd-item small { color:var(--text-3) }
+.dd-empty { color:var(--text-3); font-size:12.5px; padding:6px 8px }
+.linkbtn { background:none; border:0; padding:0; width:auto; color:var(--accent); font:inherit; font-size:12.5px; cursor:pointer; text-decoration:underline }
+.swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:-1px }
+.legend { display:flex; flex-wrap:wrap; gap:4px 16px; font-size:12.5px; color:var(--text-2); margin:0 0 6px }
+.h2h { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-bottom:16px }
+.h2h .card { padding:14px; border-radius:16px; border:1px solid var(--border); border-top:3px solid var(--border) }
+.h2h .who { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-2); font-weight:600 }
+.h2h .best { font-weight:600; margin:6px 0 8px; font-size:14.5px }
+.h2h dl { display:grid; grid-template-columns:auto 1fr; gap:3px 12px; margin:0; font-size:12.5px } .h2h dt { color:var(--text-2) } .h2h dd { margin:0; text-align:right }
+.h2h .none { color:var(--text-3); font-size:12.5px }
+.chart-card { position:relative }
+.chart-title { font-weight:600; font-size:15.5px; margin:0 } .chart-sub { color:var(--text-2); font-size:12.5px; margin:2px 0 10px }
+svg text { fill:var(--text-2); font-size:11px }
+.gridline { stroke:var(--border); stroke-dasharray:2 3 }
+.tip { position:absolute; pointer-events:none; background:#fff; border:1px solid var(--border); border-radius:12px; padding:8px 10px; font-size:12px; box-shadow:0 8px 24px rgba(13,36,67,.14); display:none; max-width:260px; z-index:5 }
+.tip b { display:block; margin-bottom:2px } .tip span { color:var(--text-2) }
+.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:16px; background:#fff }
+table { border-collapse:collapse; width:100%; min-width:820px; font-size:12.5px; font-variant-numeric:tabular-nums }
+th, td { padding:7px 8px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap }
+th { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-2); font-weight:600; background:var(--surface-2); position:sticky; top:0; cursor:pointer; user-select:none }
+th[data-sorted]::after { content:" ↓" } th[data-sorted="asc"]::after { content:" ↑" }
+th:nth-child(-n+3), td:nth-child(-n+3) { text-align:left; white-space:normal }
+tbody tr:hover { background:#fcfaf6 }
+.rank { color:var(--text-3); width:26px }
+.model { font-weight:500; min-width:160px }
+.modelbtn { background:none; border:0; padding:0; font:inherit; font-weight:500; color:var(--text); cursor:pointer; width:auto; text-align:left }
+.modelbtn:hover { color:var(--accent); text-decoration:underline }
+.modelbtn.picked { color:var(--accent); font-weight:700 }
+.score { display:flex; align-items:center; gap:8px; justify-content:flex-end }
+.meter { width:52px; height:8px; background:var(--surface-2); border-radius:4px; overflow:hidden }
+.meter i { display:block; height:100%; background:var(--accent); border-radius:0 4px 4px 0 }
+.partial { color:var(--warn); font-size:11px; margin-left:4px }
+.na { color:var(--text-3) }
+.toolbar { display:flex; flex-wrap:wrap; gap:8px 16px; justify-content:space-between; align-items:center; margin:14px 0 10px }
+.count { color:var(--text-2); font-size:13px }
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; background:linear-gradient(180deg, var(--navy-2) 0%, var(--navy) 100%); border-radius:var(--radius); padding:14px; margin-bottom:16px }
+.kpi { padding:14px 16px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:14px }
+.kpi .k { font-size:11px; color:rgba(234,221,193,.8); text-transform:uppercase; letter-spacing:.09em; font-weight:600 }
+.kpi .v { font-size:22px; font-weight:650; margin:6px 0 2px; color:#fff; letter-spacing:-.01em }
+.kpi .s { font-size:12px; color:rgba(255,255,255,.62) }
+.lever { display:grid; grid-template-columns:150px 1fr 130px; gap:12px; align-items:center; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px }
+.lever:last-child { border-bottom:0 }
+.lever .bar { height:10px; background:var(--surface-2); border-radius:5px; overflow:hidden; margin:0 }
+.lever .bar i { display:block; height:100%; background:var(--accent) }
+.lever.total .bar i { background:var(--navy) }
+.lever .amt { text-align:right } .lever .amt small { color:var(--text-2); display:block }
+.lever.total { font-weight:600 }
+@media (max-width:600px) { .lever { grid-template-columns:1fr 100px } .lever .bar { grid-column:1/-1; grid-row:2 } }
+.cmp-table { width:100%; font-size:13px } .cmp-table th:first-child, .cmp-table td:first-child { text-align:left; white-space:normal }
+.cmp-table th { position:static }
+.good { color:var(--good) }
+.src { color:var(--text-3); font-size:12px; margin:8px 0 0 }
+.w-row { display:grid; grid-template-columns:1fr 105px 38px; gap:8px; align-items:center; margin:10px 0 4px }
+.w-row input[type=range] { accent-color:var(--navy) }
+.w-row output { text-align:right; font-size:12px; color:var(--text-2) }
+.w-help { font-size:11.5px; color:var(--text-3); margin:-2px 0 6px }
+.consult { margin-top:8px; border:1px solid var(--border); border-radius:12px; overflow:auto }
+.consult table { min-width:0; font-size:12px } .consult th, .consult td { padding:5px 6px } .consult td.num { text-align:right }
+.method { margin-top:16px } .method summary { cursor:pointer; font-weight:600; font-size:12.5px } .method ul { color:var(--text-2); padding-left:18px; font-size:12.5px }
+footer { margin-top:8px; background:linear-gradient(180deg, var(--navy-2) 0%, var(--navy) 100%); color:rgba(255,255,255,.72); border-radius:var(--radius); padding:22px 24px; display:flex; flex-wrap:wrap; gap:8px 24px; align-items:center; justify-content:space-between }
+footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600; letter-spacing:.02em }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="gate panel" id="gate" hidden>
+    <img src="https://new.costra.io/__l5e/assets-v1/ccb6e6f5-eb43-4485-89b4-b1b834955424/Logo-black.png" alt="Costra">
+    <h1>AI Cost Navigator</h1>
+    <p class="help" style="margin:0 0 14px;font-size:13px">Describe a use case, size the tokens, rank the models and see cost per outcome — one flow, one login.</p>
+    <form id="gateForm">
+      <label for="g_email">Email</label><input id="g_email" type="email" autocomplete="username" required>
+      <label for="g_pw">Password</label><input id="g_pw" type="password" autocomplete="current-password" required>
+      <div class="btns"><button class="btn primary" type="submit">Sign in</button><span id="gateErr" class="err" style="align-self:center"></span></div>
+    </form>
+  </div>
+
+  <div id="main" hidden>
+    <div class="topbar">
+      <img src="https://new.costra.io/__l5e/assets-v1/ccb6e6f5-eb43-4485-89b4-b1b834955424/Logo-black.png" alt="Costra">
+      <span class="sep" aria-hidden="true"></span>
+      <span class="brand-app">AI Cost Navigator</span>
+      <div class="meta" id="who"></div>
+    </div>
+    <header class="hero">
+      <h1>One workload, one cost story</h1>
+      <p class="sub">Describe the use case, size the tokens, weigh what matters, pick a model and see cost per outcome — low / base / high — with the tuning levers that decide what a successful outcome really costs.</p>
+    </header>
+    <nav class="stepnav">
+      <a href="#sec-usecase">1 · Use case</a><a href="#sec-sizing">2 · Token profile</a><a href="#sec-priorities">3 · Priorities</a>
+      <a href="#sec-model">4 · Model</a><a href="#sec-cost">5 · Cost &amp; tuning</a><a href="#sec-export">6 · Export</a>
+    </nav>
+
+    <section class="panel" id="sec-usecase">
+      <div class="hd"><span class="n">1</span><h2>Describe the use case</h2></div>
+      <div class="grid2">
+        <div>
+          <div class="lbl" style="margin-top:0"><span>Name</span><span class="info" tabindex="0">i<span class="tip">Short working name; appears in the BOM and the architecture document.</span></span></div>
+          <input id="m_name" placeholder="e.g. Contract summarisation">
+          <div class="lbl"><span>Archetype</span><span class="info" tabindex="0">i<span class="tip">Pick the shape of the workload. Each archetype has its own questions, formulas and components — and its own Big-T class (how cost scales).</span></span></div>
+          <div id="archetype" class="arch"></div>
+          <div class="row">
+            <div><div class="lbl"><span>Outcome unit</span><span class="info" tabindex="0">i<span class="tip">The thing the business gets. Cost is reported per unit of this — not per token.</span></span></div><input id="m_unit" placeholder="e.g. reviewed contract"></div>
+            <div><div class="lbl"><span>Where is it counted?</span><span class="info" tabindex="0">i<span class="tip">The system that counts outcomes. No count source, no unit economics.</span></span></div><input id="m_count" placeholder="e.g. DMS status 'reviewed'"></div>
+          </div>
+          <div class="lbl"><span>Quality floor (what counts as a valued outcome)</span><span class="info" tabindex="0">i<span class="tip">When does an output count? Without a floor you count attempts, and cost per outcome looks better while quality drops.</span></span></div>
+          <input id="m_floor" placeholder="e.g. summary accepted by reviewer without edits">
+        </div>
+        <div>
+          <h3>Parameters</h3>
+          <div id="fields"></div>
+        </div>
+      </div>
+      <div class="btns"><button class="btn ghost" id="reset">Reset defaults</button></div>
+    </section>
+
+    <section class="panel" id="sec-sizing">
+      <div class="hd"><span class="n">2</span><h2>Token profile</h2><span class="desc">Three scenarios (low / base / high) vary tokens-per-word, retries and cache hit. Click one to make it the active scenario — it drives everything below.</span></div>
+      <div class="scen" id="scen"></div>
+      <div id="flags"></div>
+    </section>
+
+    <section class="panel" id="sec-priorities">
+      <div class="hd"><span class="n">3</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything.</span></div>
+      <div class="grid2">
+        <div>
+          <h3>Task profile</h3>
+          <div class="profiles" id="profiles"></div>
+          <p class="profile-desc" id="profileDesc"></p>
+        </div>
+        <div>
+          <h3>Weights</h3>
+          <div id="weights"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="sec-model">
+      <div class="hd"><span class="n">4</span><h2>Model</h2><span class="desc">Ranked for this workload. The best fit is priced automatically below — click any row to price that model instead.</span></div>
+      <div class="row" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+        <div><label for="minInt" style="margin-top:0">Min. intelligence</label><input id="minInt" type="number" min="0" max="100" step="1" value="0"></div>
+        <div><label for="maxCost" style="margin-top:0">Max $ / month</label><input id="maxCost" type="number" min="0" step="10" placeholder="any"></div>
+        <div><label for="creator" style="margin-top:0">Model name contains</label><input id="creator" type="text" placeholder="optional"></div>
+        <div><label for="since" style="margin-top:0">Released after</label><input id="since" type="date"></div>
+      </div>
+      <label class="lbl" style="margin-top:10px"><input type="checkbox" id="complete" checked style="width:auto"> Only models with data for every weighted metric</label>
+      <div class="filterbar" style="margin-top:16px">
+        <div class="dd" id="provDD">
+          <button type="button" class="dd-btn" id="provBtn" aria-haspopup="true" aria-expanded="false"><span class="dd-key">Providers</span><span id="provSummary">All</span><span class="caret">▾</span></button>
+          <div class="dd-panel" id="provPanel" hidden>
+            <input type="search" id="provSearch" placeholder="Search providers" autocomplete="off">
+            <div class="dd-actions"><button type="button" class="linkbtn" data-prov="ao">Anthropic vs OpenAI</button><button type="button" class="linkbtn" data-prov="all">All</button><button type="button" class="linkbtn" data-prov="none">None</button></div>
+            <div class="dd-list" id="providers"></div>
+          </div>
+        </div>
+        <span class="help" style="margin:0">Pick 1–3 providers for a head-to-head.</span>
+        <span style="margin-left:auto" id="modelsStatus" class="help">no model data</span>
+        <button class="btn" id="loadModels" style="width:auto">Fetch / refresh models</button>
+      </div>
+      <div class="h2h" id="h2h" hidden></div>
+      <div class="chart-card" style="margin-bottom:16px">
+        <p class="chart-title">Fit score vs. monthly cost</p>
+        <p class="chart-sub" id="chartSub">Top-left is the sweet spot. Cost axis is logarithmic.</p>
+        <div class="legend" id="legend" hidden></div>
+        <div id="chart"></div>
+        <div class="tip" id="tip"></div>
+      </div>
+      <div class="toolbar"><span class="count" id="count"></span><button class="btn" id="clearPick" style="width:auto">Clear manual pick</button></div>
+      <div class="table-wrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+      <details class="method"><summary>How the fit score works</summary><ul>
+        <li>Each metric is scaled to 0–100 across all models that report it. Indices are scaled linearly; price, cost per task, speed and latency span orders of magnitude and are scaled on a log basis.</li>
+        <li>Fit score = weighted average of the scaled metrics. With "only complete data" off, missing metrics are skipped and remaining weights re-normalized (marked "partial").</li>
+        <li>Monthly cost here uses this use case's own sized tokens (section 2), not a generic workload.</li>
+      </ul></details>
+      <h3 style="margin-top:18px">Or set a price manually</h3>
+      <div class="row" style="grid-template-columns:1fr 1fr 1fr">
+        <div><span class="help">input $/1M</span><input id="p_in" type="number" step="0.01" placeholder="manual"></div>
+        <div><span class="help">output $/1M</span><input id="p_out" type="number" step="0.01" placeholder="manual"></div>
+        <div><span class="help">cached input $/1M</span><input id="p_cache" type="number" step="0.01" placeholder="optional"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="sec-cost">
+      <div class="hd"><span class="n">5</span><h2>Cost &amp; tuning</h2><span class="desc">Model + embeddings only — infra via the Azure estimator, labour via the ledger.</span></div>
+      <div class="scen" id="cscen"></div>
+      <h3 style="margin-top:22px">Model</h3>
+      <div id="model"></div>
+      <h3 style="margin-top:18px">Bill of materials <span style="text-transform:none;letter-spacing:0;font-weight:400">(base scenario)</span></h3>
+      <table id="bom"><thead><tr><th style="text-align:left">Component</th><th style="text-align:left">Role</th><th style="text-align:left">SKU hint</th><th>Quantity</th><th style="text-align:left">Unit</th><th style="text-align:left">Source</th></tr></thead><tbody></tbody></table>
+
+      <h3 style="margin-top:26px">Optimization levers <span style="text-transform:none;letter-spacing:0;font-weight:400">— what-ifs on top of the priced model above</span></h3>
+      <div class="grid2">
+        <div>
+          <div class="w-row"><label for="tkLc">Cache hit target</label><input type="range" id="tkLc" min="0" max="95" step="5" value="60"><output id="tkLcO"></output></div>
+          <p class="w-help">What if more of the repeated prompt came from cache?</p>
+          <div class="w-row"><label for="tkLt">Trim context</label><input type="range" id="tkLt" min="0" max="80" step="5" value="30"><output id="tkLtO"></output></div>
+          <p class="w-help">What if each call sent less history or fewer documents?</p>
+          <div class="w-row"><label for="tkLs">Shorten output</label><input type="range" id="tkLs" min="0" max="80" step="5" value="25"><output id="tkLsO"></output></div>
+          <p class="w-help">What if answers were shorter?</p>
+          <div class="w-row" id="tkLaRow"><label for="tkLa">Cap agent steps</label><input type="range" id="tkLa" min="1" max="30" step="1" value="8"><output id="tkLaO"></output></div>
+          <p class="w-help" id="tkLaHelp">Agentic archetype only — stops runaway loops.</p>
+        </div>
+        <div>
+          <div class="row"><div><label for="tkV" style="margin-top:0">Value per success (EUR)</label><input id="tkV" type="number" min="0" step="1" placeholder="optional"></div>
+            <div><label for="tkSR" style="margin-top:0">Success rate override (%)</label><input id="tkSR" type="number" min="1" max="100" step="1" placeholder="from use case"></div></div>
+          <div class="row"><div><label for="tkTl" style="margin-top:0">Tokens: low % of AI spend</label><input id="tkTl" type="number" min="1" max="100" step="1" value="10"></div>
+            <div><label for="tkTh" style="margin-top:0">Tokens: high % of AI spend</label><input id="tkTh" type="number" min="1" max="100" step="1" value="25"></div></div>
+          <p class="help">Total cost of AI includes infra, tooling and people around the model call — tokens are typically only 10–25% of it. Replace with your own figures when known.</p>
+        </div>
+      </div>
+      <div class="kpis" id="tkKpis" style="margin-top:18px"></div>
+      <h3>Unit economics: today vs. optimized</h3>
+      <div class="table-wrap" style="border:0"><table class="cmp-table" id="tkTable"></table></div>
+      <div id="notes" style="margin-top:16px"></div>
+    </section>
+
+    <section class="panel" id="sec-export">
+      <div class="hd"><span class="n">6</span><h2>Export</h2></div>
+      <div class="btns">
+        <button class="btn primary" id="dlJson">Download bom.json</button>
+        <button class="btn" id="dlMd">Download architecture.md</button>
+        <button class="btn ghost" id="copyMd">Copy markdown for Azure estimator</button>
+        <button class="btn" id="csv">Export model table (CSV)</button>
+      </div>
+    </section>
+
+    <footer>
+      <span>Data: <a href="https://artificialanalysis.ai" target="_blank" rel="noopener">Artificial Analysis</a> · free tier, refreshed every 6 hours · formulas: Costra spec v0.1</span>
+      <span class="by">COSTRA</span>
+    </footer>
+  </div>
+</div>
+
+<script type="module">
+import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS } from "./engine.js";
+
+const $ = id => document.getElementById(id);
+const cfg = await (await fetch("./config.json")).json();
+const fmt = n => n == null ? "—" : Math.round(n).toLocaleString("en-US");
+const eur = n => n == null ? "—" : "€ " + (n < 1 ? n.toFixed(3) : n.toFixed(2));
+const usd = v => v == null ? '<span class="na">–</span>' : v !== 0 && Math.abs(v) < 0.01 ? "$" + Number(v.toPrecision(2)) : "$" + (v >= 100 ? Math.round(v).toLocaleString("en-US") : v.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 }));
+const num = (v, d = 1) => v == null ? '<span class="na">–</span>' : v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+const esc = t => String(t ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+const lbl = (text, help) => `<div class="lbl"><span>${text}</span>${help ? `<span class="info" tabindex="0">i<span class="tip">${esc(help)}</span></span>` : ""}</div>`;
+document.addEventListener("click", e => { const i = e.target.closest(".info"); document.querySelectorAll(".info.open").forEach(x => { if (x !== i) x.classList.remove("open"); }); if (i) i.classList.toggle("open"); });
+
+// ---------- session ----------
+let SESSION = null;
+{ const u = new URL(location.href); const fromUrl = u.searchParams.get("s");
+  if (fromUrl) { try { localStorage.setItem("costra_session", fromUrl); } catch {} u.searchParams.delete("s"); history.replaceState(null, "", u.pathname + u.search + u.hash); }
+  try { SESSION = fromUrl || localStorage.getItem("costra_session"); } catch {} }
+const authHeaders = () => SESSION ? { authorization: "Bearer " + SESSION } : {};
+function showGate(msg) { $("gate").hidden = false; $("main").hidden = true; $("gateErr").textContent = msg || ""; }
+function showApp(me) { $("gate").hidden = true; $("main").hidden = false; $("who").innerHTML = `Signed in as <b>${esc(me.email)}</b> · <button type="button" class="linkbtn" id="signout">Sign out</button>`; $("signout").onclick = signOut; }
+function signOut() { SESSION = null; try { localStorage.removeItem("costra_session"); } catch {} showGate(); }
+$("gateForm").addEventListener("submit", async e => {
+  e.preventDefault(); $("gateErr").textContent = "";
+  try {
+    const r = await fetch("/api/auth", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: $("g_email").value.trim(), password: $("g_pw").value }) });
+    let j; try { j = await r.json(); } catch { throw new Error(`Server error (${r.status}) — check the AUTH_* environment variables in Vercel.`); }
+    if (!r.ok) throw new Error(j.error || "Sign-in failed");
+    SESSION = j.session; try { localStorage.setItem("costra_session", SESSION); } catch {}
+    showApp({ email: j.email }); loadModels();
+  } catch (err) { $("gateErr").textContent = err.message; }
+});
+
+// ---------- state ----------
+let models = [], result = null, ranked = { rows: [], total: 0 };
+let currentArch = Object.keys(ARCHETYPES)[0];
+let selectedScenario = "base";
+let profileId = TASKFIT_PROFILE_OF[currentArch] || "bulk", profileTouched = false;
+let customWeights = {};
+let providers = new Set();
+let pickedModel = null; // slug
+let minIntTouched = false;
+const SLOTS = ["var(--s1)", "var(--s2)", "var(--s3)"];
+
+// ---------- archetype + fields ----------
+const aSel = $("archetype");
+function renderArch() {
+  aSel.innerHTML = Object.entries(ARCHETYPES).map(([k, v]) => `<button type="button" class="${k === currentArch ? "on" : ""}" data-arch="${k}"><span class="t">${v.label}</span><span class="m">${v.bigT} · per ${v.unit}</span></button>`).join("");
+  aSel.querySelectorAll("[data-arch]").forEach(b => b.onclick = () => {
+    currentArch = b.dataset.arch; renderArch(); renderFields(false);
+    if (!profileTouched) { profileId = TASKFIT_PROFILE_OF[currentArch] || "bulk"; renderProfiles(); }
+    $("tkLaRow").style.display = currentArch === "agentic" ? "" : "none";
+    $("tkLaHelp").style.display = currentArch === "agentic" ? "" : "none";
+    run();
+  });
+}
+function renderFields(keepValues = false) {
+  const a = currentArch, prev = keepValues ? readParams() : defaultsFor(a);
+  const box = $("fields"); box.innerHTML = "";
+  for (const f of ARCHETYPES[a].fields) {
+    const v = prev[f.id] ?? f.default;
+    let ctrl;
+    if (f.type === "select") ctrl = `<div class="seg" data-id="${f.id}" data-kind="select" data-value="${v}">${f.options.map(o => `<button type="button" data-v="${o}" class="${o == v ? "on" : ""}">${o}</button>`).join("")}</div>`;
+    else if (f.type === "bool") ctrl = `<div class="seg" data-id="${f.id}" data-kind="bool" data-value="${v}"><button type="button" data-v="true" class="${v ? "on yes" : ""}">Yes</button><button type="button" data-v="false" class="${!v ? "on" : ""}">No</button></div>`;
+    else ctrl = `<input type="number" data-id="${f.id}" data-kind="number" value="${v}" step="${f.step ?? 1}">`;
+    box.insertAdjacentHTML("beforeend", `<div data-field="${f.id}">${lbl(f.label, f.help)}${ctrl}</div>`);
+  }
+  box.querySelectorAll("input[data-id]").forEach(el => el.addEventListener("change", () => { applyShowIf(); run(); }));
+  box.querySelectorAll(".seg[data-id]").forEach(seg => seg.querySelectorAll("button").forEach(b => b.onclick = () => {
+    seg.dataset.value = b.dataset.v; seg.querySelectorAll("button").forEach(x => x.className = ""); b.className = "on" + (seg.dataset.kind === "bool" && b.dataset.v === "true" ? " yes" : "");
+    applyShowIf(); run();
+  }));
+  applyShowIf();
+}
+function readParams() {
+  const out = {};
+  $("fields").querySelectorAll("[data-id]").forEach(el => {
+    const id = el.dataset.id, k = el.dataset.kind;
+    out[id] = k === "bool" ? el.dataset.value === "true" : k === "select" ? el.dataset.value : +el.value;
+  });
+  return out;
+}
+function applyShowIf() {
+  const p = readParams();
+  for (const f of ARCHETYPES[currentArch].fields) {
+    const el = $("fields").querySelector(`[data-field="${f.id}"]`);
+    if (!f.showIf) continue;
+    const [k, vals] = Object.entries(f.showIf)[0];
+    el.style.display = vals.includes(p[k]) ? "" : "none";
+  }
+}
+$("reset").onclick = () => { renderFields(false); run(); };
+$("scen").addEventListener("click", e => { const c = e.target.closest(".sc"); if (!c) return; selectedScenario = c.dataset.sc; run(); });
+
+// ---------- models ----------
+function setStatus(text, cls) { const el = $("modelsStatus"); el.textContent = text; el.style.color = cls === "err" ? "#c43d3c" : cls === "ok" ? "var(--good)" : ""; }
+async function loadModels() {
+  if (!SESSION) { setStatus("Sign in first.", "err"); return; }
+  setStatus("Fetching model data…");
+  try {
+    const r = await fetch("/api/models", { headers: authHeaders() }); const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    models = j.models || [];
+    for (const m of models) m.creator = m.creator || "Unknown";
+    setStatus(`${models.length} models · fetched ${new Date(j.fetched_at || Date.now()).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`, "ok");
+    let saved = null; try { saved = JSON.parse(localStorage.getItem("nav_providers") || "null"); } catch {}
+    const names = [...new Set(models.map(m => m.creator))];
+    providers = new Set(Array.isArray(saved) ? saved.filter(n => names.includes(n)) : names);
+    if (!providers.size) providers = new Set(names);
+    renderProviders();
+    run();
+  } catch (e) {
+    const msg = /401|unauthorized/i.test(e.message) ? "Session expired — sign in again." : "Models unavailable: " + e.message;
+    setStatus(msg, "err");
+    if (/401|unauthorized|expired/i.test(e.message)) signOut();
+  }
+}
+$("loadModels").onclick = loadModels;
+
+function priceOverride() {
+  const pin = +$("p_in").value, pout = +$("p_out").value, pc = +$("p_cache").value;
+  if (pin > 0 && pout > 0) return { name: "Manual price", slug: "manual", usd_per_1m_input: pin, usd_per_1m_output: pout, usd_per_1m_cache_hit: pc > 0 ? pc : null, intelligence_index: null };
+  if (pickedModel) { const m = models.find(x => x.slug === pickedModel); if (m) return m; }
+  return null;
+}
+["p_in", "p_out", "p_cache"].forEach(id => $(id).addEventListener("change", () => { if (+$("p_in").value > 0) pickedModel = null; run(); }));
+$("clearPick").onclick = () => { pickedModel = null; $("p_in").value = ""; $("p_out").value = ""; $("p_cache").value = ""; run(); };
+
+// ---------- priorities ----------
+function renderProfiles() {
+  $("profiles").innerHTML = Object.entries(TASKFIT_PROFILES).map(([id, p]) => `<button type="button" data-id="${id}" aria-pressed="${id === profileId}">${p.name}</button>`).join("")
+    + `<button type="button" data-id="custom" aria-pressed="${profileId === "custom"}"${profileId === "custom" ? "" : " hidden"}>Custom</button>`;
+  $("profileDesc").textContent = profileId === "custom" ? "Your own weights — pick a preset above to start from a known profile again." : (TASKFIT_PROFILES[profileId] || {}).desc || "";
+}
+function nearestLevel(v) { return WEIGHT_LEVELS.reduce((a, b) => Math.abs(b.v - v) < Math.abs(a.v - v) ? b : a).v; }
+function currentWeights() { return profileId === "custom" ? customWeights : (TASKFIT_PROFILES[profileId] || TASKFIT_PROFILES.bulk).w; }
+function renderWeights() {
+  const w = currentWeights();
+  $("weights").innerHTML = TASKFIT_METRICS.map(m => {
+    const active = nearestLevel(w[m.key] || 0);
+    return `<div class="wt-row"><p class="wt-q"><b>${m.label}.</b> ${m.help}</p><div class="wt-levels" role="radiogroup" aria-label="${m.label}">${WEIGHT_LEVELS.map(l => `<button type="button" data-key="${m.key}" data-v="${l.v}" aria-pressed="${l.v === active}">${l.label}</button>`).join("")}</div></div>`;
+  }).join("");
+}
+$("profiles").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; profileId = b.dataset.id; profileTouched = true; renderProfiles(); renderWeights(); run(); });
+$("weights").addEventListener("click", e => {
+  const b = e.target.closest("button[data-key]"); if (!b) return;
+  if (profileId !== "custom") { customWeights = { ...currentWeights() }; profileId = "custom"; profileTouched = true; renderProfiles(); }
+  customWeights[b.dataset.key] = +b.dataset.v;
+  renderWeights(); run();
+});
+$("minInt").addEventListener("input", () => { minIntTouched = true; run(); });
+["maxCost", "creator", "since", "complete"].forEach(id => $(id).addEventListener("input", run));
+
+// ---------- providers dropdown ----------
+function renderProviders() {
+  const counts = {}; for (const m of models) counts[m.creator] = (counts[m.creator] || 0) + 1;
+  const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+  const q = ($("provSearch").value || "").trim().toLowerCase();
+  const list = names.filter(n => !q || n.toLowerCase().includes(q));
+  $("providers").innerHTML = list.map(n => `<label class="dd-item"><input type="checkbox" value="${esc(n)}"${providers.has(n) ? " checked" : ""}><span>${colorOf(n) ? `<span class="swatch" style="background:${colorOf(n)}"></span>` : ""}${esc(n)}</span><small>${counts[n]}</small></label>`).join("") || '<div class="dd-empty">No providers found.</div>';
+  const sel = names.filter(n => providers.has(n));
+  $("provSummary").textContent = sel.length === names.length ? `All (${sel.length})` : sel.length === 0 ? "None" : sel.length <= 3 ? sel.join(" vs ") : `${sel.length} selected`;
+}
+function saveProviders() { try { localStorage.setItem("nav_providers", JSON.stringify([...providers])); } catch {} }
+$("providers").addEventListener("change", e => { const v = e.target.value; e.target.checked ? providers.add(v) : providers.delete(v); saveProviders(); renderProviders(); run(); });
+document.querySelectorAll("[data-prov]").forEach(b => b.onclick = () => {
+  const names = [...new Set(models.map(m => m.creator))]; const k = b.dataset.prov;
+  if (k === "all") providers = new Set(names);
+  if (k === "none") providers = new Set();
+  if (k === "ao") providers = new Set(names.filter(n => /^(anthropic|openai)$/i.test(n)));
+  saveProviders(); renderProviders(); run();
+});
+const openDD = open => { $("provPanel").hidden = !open; $("provBtn").setAttribute("aria-expanded", String(open)); if (open) $("provSearch").focus(); };
+$("provBtn").onclick = () => openDD($("provPanel").hidden);
+$("provSearch").addEventListener("input", renderProviders);
+document.addEventListener("click", e => { if (!$("provDD").contains(e.target)) openDD(false); });
+function compareSet() { const sel = [...providers]; return sel.length >= 1 && sel.length <= 3 ? sel : null; }
+function colorOf(creator) { const c = compareSet(); const i = c ? c.indexOf(creator) : -1; return i >= 0 ? SLOTS[i] : null; }
+
+// ---------- table ----------
+const COLS = [
+  { key: "rank", label: "#", sortable: false }, { key: "name", label: "Model" }, { key: "creator", label: "Creator" }, { key: "fit", label: "Fit" },
+  { key: "intelligence_index", label: "Intel." }, { key: "coding_index", label: "Coding" }, { key: "agentic_index", label: "Agentic" },
+  { key: "usd_per_1m_blended_3to1", label: "$/1M blend." }, { key: "cost_per_task_usd", label: "$/task" },
+  { key: "output_tokens_per_sec", label: "Tok/s" }, { key: "monthly", label: "$/month (this use case)" },
+];
+let sortKey = "fit", sortDir = "desc";
+function sortRows(rows) { const f = sortDir === "asc" ? 1 : -1; return rows.slice().sort((a, b) => { const x = a[sortKey], y = b[sortKey]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return typeof x === "string" ? x.localeCompare(y) * f : (x - y) * f; }); }
+function renderTable(rows) {
+  $("thead").innerHTML = COLS.map(c => `<th data-key="${c.key}"${sortKey === c.key ? ` data-sorted="${sortDir}"` : ""}${c.sortable === false ? ' style="cursor:default"' : ""}>${c.label}</th>`).join("");
+  $("tbody").innerHTML = rows.slice(0, 100).map((r, i) => `<tr><td class="rank">${i + 1}</td>
+    <td class="model"><button type="button" class="modelbtn${r.slug === pickedModel ? " picked" : ""}" data-slug="${esc(r.slug)}" title="Price this model">${esc(r.name)}${r.slug === pickedModel ? " ✓" : ""}</button>${r.partial ? '<span class="partial">partial</span>' : ""}</td>
+    <td>${colorOf(r.creator) ? `<span class="swatch" style="background:${colorOf(r.creator)}"></span>` : ""}${esc(r.creator)}</td>
+    <td><div class="score"><span>${num(r.fit, 0)}</span><span class="meter"><i style="width:${Math.max(2, r.fit)}%"></i></span></div></td>
+    <td>${num(r.intelligence_index)}</td><td>${num(r.coding_index)}</td><td>${num(r.agentic_index)}</td>
+    <td>${usd(r.usd_per_1m_blended_3to1)}</td><td>${usd(r.cost_per_task_usd)}</td><td>${num(r.output_tokens_per_sec, 0)}</td><td><b>${usd(r.monthly)}</b></td></tr>`).join("")
+    || `<tr><td colspan="${COLS.length}" style="text-align:center;color:var(--text-2);padding:24px">No models match these filters.</td></tr>`;
+  $("count").textContent = `${rows.length} model${rows.length === 1 ? "" : "s"} match` + (rows.length > 100 ? " (showing 100)" : "");
+}
+$("thead").addEventListener("click", e => {
+  const th = e.target.closest("th"); if (!th) return;
+  const c = COLS.find(x => x.key === th.dataset.key); if (!c || c.sortable === false) return;
+  if (sortKey === c.key) sortDir = sortDir === "desc" ? "asc" : "desc"; else { sortKey = c.key; sortDir = ["name", "creator"].includes(c.key) ? "asc" : "desc"; }
+  renderTable(sortRows(ranked.rows));
+});
+$("tbody").addEventListener("click", e => { const b = e.target.closest(".modelbtn"); if (!b) return; pickedModel = b.dataset.slug; $("p_in").value = ""; $("p_out").value = ""; run(); document.getElementById("sec-cost").scrollIntoView({ behavior: "smooth", block: "start" }); });
+
+// ---------- chart ----------
+function niceLogTicks(min, max) { const out = []; for (let e = Math.floor(Math.log10(min)); e <= Math.ceil(Math.log10(max)); e++) for (const m of [1, 3]) { const v = m * 10 ** e; if (v >= min * 0.999 && v <= max * 1.001) out.push(v); } return out; }
+function chartLabels(cands, X, Y, W, m) {
+  const placed = [], out = [];
+  for (const p of cands) {
+    if (placed.length >= 3) break;
+    const name = p.name.length > 30 ? p.name.slice(0, 28) + "…" : p.name;
+    const w = name.length * 6.2, x = X(p.monthly), y = Y(p.fit), right = x + 9 + w < W - m.r;
+    const box = { x0: right ? x + 9 : x - 9 - w, x1: right ? x + 9 + w : x - 9, y0: y - 8, y1: y + 6 };
+    if (placed.some(b => !(box.x1 < b.x0 || box.x0 > b.x1 || box.y1 < b.y0 || box.y0 > b.y1))) continue;
+    placed.push(box);
+    out.push(`<text x="${right ? x + 9 : x - 9}" y="${y + 4}" text-anchor="${right ? "start" : "end"}">${esc(name)}</text>`);
+  }
+  return out.join("");
+}
+function renderChart(rows) {
+  const el = $("chart");
+  const pts = rows.filter(r => r.monthly != null && r.monthly > 0);
+  if (!pts.length) { el.innerHTML = '<p class="chart-sub">No priced models to plot yet — fetch models above.</p>'; $("legend").hidden = true; return; }
+  const cmp = compareSet();
+  const bestPer = cmp ? new Set(cmp.map(c => { const b = rows.filter(r => r.creator === c).sort((a, b) => b.fit - a.fit)[0]; return b && (b.id || b.slug); }).filter(Boolean)) : null;
+  const top = cmp ? bestPer : new Set(rows.slice().sort((a, b) => b.fit - a.fit).slice(0, 10).map(r => r.id || r.slug));
+  $("legend").hidden = !cmp;
+  $("legend").innerHTML = cmp ? cmp.map((c, i) => `<span><span class="swatch" style="background:${SLOTS[i]}"></span>${esc(c)}</span>`).join("") + '<span style="color:var(--text-3)">Labeled: best fit per provider</span>' : "";
+  $("chartSub").textContent = cmp ? "Top-left is the sweet spot. Each provider has its own color. Cost axis is logarithmic." : "Top-left is the sweet spot. Highlighted: top 10 by fit score. Cost axis is logarithmic.";
+  const W = el.clientWidth || 800, H = 300, m = { t: 12, r: 16, b: 38, l: 44 };
+  let xmin = Math.min(...pts.map(p => p.monthly)), xmax = Math.max(...pts.map(p => p.monthly));
+  if (xmin === xmax) { xmin /= 2; xmax *= 2; }
+  const lx0 = Math.log10(xmin) - 0.1, lx1 = Math.log10(xmax) + 0.1;
+  const X = v => m.l + (Math.log10(v) - lx0) / (lx1 - lx0) * (W - m.l - m.r);
+  const Y = v => m.t + (1 - v / 100) * (H - m.t - m.b);
+  const xt = niceLogTicks(10 ** lx0, 10 ** lx1), yt = [0, 25, 50, 75, 100];
+  const sorted = pts.slice().sort((a, b) => top.has(a.id || a.slug) - top.has(b.id || b.slug));
+  el.innerHTML = `<svg width="${W}" height="${H}" role="img" aria-label="Scatter of fit score versus monthly cost">
+    ${yt.map(v => `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`).join("")}
+    ${xt.map(v => `<text x="${X(v)}" y="${H - m.b + 16}" text-anchor="middle">$${v >= 1000 ? (v / 1000) + "k" : v}</text>`).join("")}
+    <text x="${(W + m.l) / 2}" y="${H - 4}" text-anchor="middle">Monthly cost (USD, log scale)</text>
+    <text transform="translate(12 ${(H - m.b + m.t) / 2}) rotate(-90)" text-anchor="middle">Fit score</text>
+    ${sorted.map(p => { const hi = top.has(p.id || p.slug), picked = p.slug === pickedModel, col = picked ? "var(--accent)" : cmp ? colorOf(p.creator) : (hi ? "var(--accent)" : "var(--muted-mark)");
+      return `<circle cx="${X(p.monthly)}" cy="${Y(p.fit)}" r="${picked ? 7.5 : hi ? 6.5 : 4.5}" fill="${col}" stroke="#fff" stroke-width="2" data-i="${pts.indexOf(p)}" style="cursor:pointer"/>`; }).join("")}
+    ${chartLabels(pts.filter(p => top.has(p.id || p.slug)).sort((a, b) => b.fit - a.fit).slice(0, 5), X, Y, W, m)}
+  </svg>`;
+  const tip = $("tip");
+  el.querySelectorAll("circle").forEach(c => {
+    c.addEventListener("mouseenter", () => {
+      const p = pts[+c.dataset.i];
+      tip.innerHTML = `<b>${esc(p.name)}</b><span>${esc(p.creator)}</span><br>Fit <b style="display:inline">${Math.round(p.fit)}</b> · ${usd(p.monthly)}/mo<br><span>Intelligence ${num(p.intelligence_index)}</span>`;
+      tip.style.display = "block";
+      const cb = c.getBoundingClientRect(), card = el.parentElement.getBoundingClientRect();
+      let left = cb.left - card.left + 12; if (left + 260 > card.width) left = cb.left - card.left - 270;
+      tip.style.left = Math.max(8, left) + "px"; tip.style.top = (cb.top - card.top - 10) + "px";
+    });
+    c.addEventListener("mouseleave", () => { tip.style.display = "none"; });
+  });
+  el.querySelectorAll("circle").forEach(c => c.addEventListener("click", () => { pickedModel = pts[+c.dataset.i].slug; $("p_in").value = ""; $("p_out").value = ""; run(); }));
+}
+
+// ---------- head to head ----------
+function renderH2H(rows) {
+  const cmp = compareSet(), el = $("h2h");
+  el.hidden = !cmp || cmp.length < 2; if (el.hidden) return;
+  el.innerHTML = cmp.map((c, i) => {
+    const mine = rows.filter(r => r.creator === c);
+    const best = mine.slice().sort((a, b) => b.fit - a.fit)[0];
+    if (!best) return `<div class="card"><div class="who"><span class="swatch" style="background:${SLOTS[i]}"></span>${esc(c)}</div><p class="none">No models match the current filters.</p></div>`;
+    const cheapest = mine.filter(r => r.monthly != null && best.monthly != null && r.fit >= best.fit - 10 && r.monthly < best.monthly * 0.95).sort((a, b) => a.monthly - b.monthly)[0];
+    return `<div class="card"><div class="who"><span class="swatch" style="background:${SLOTS[i]}"></span>${esc(c)} · best fit</div><div class="best">${esc(best.name)}</div>
+      <dl><dt>Fit</dt><dd><b>${Math.round(best.fit)}</b></dd><dt>Monthly cost</dt><dd><b>${usd(best.monthly)}</b></dd><dt>Intelligence</dt><dd>${num(best.intelligence_index)}</dd>
+      ${cheapest && cheapest !== best ? `<dt>Budget pick</dt><dd>${esc(cheapest.name)}<br>${Math.round(cheapest.fit)} · ${usd(cheapest.monthly)}/mo</dd>` : ""}
+      <dt>Models</dt><dd>${mine.length}</dd></dl></div>`;
+  }).join("");
+}
+
+// ---------- levers state ----------
+$("tkLaRow").style.display = "none"; $("tkLaHelp").style.display = "none";
+["tkLc", "tkLt", "tkLs", "tkLa", "tkV", "tkSR", "tkTl", "tkTh"].forEach(id => $(id).addEventListener("input", run));
+
+// ---------- main compute + render ----------
+function run() {
+  const params = readParams();
+  const ov = priceOverride();
+  result = compute(currentArch, params, cfg, models, ov, selectedScenario);
+  const b = selectedOf(result), p = result.params;
+
+  if (!minIntTouched) $("minInt").value = cfg.defaults.quality_thresholds[p.quality_bar || "medium"];
+
+  // section 2: scenario cards
+  const S = result.scenarios;
+  $("scen").innerHTML = ["low", "base", "high"].map(s => { const r = S[s], cpo = r.cost.cost_per_outcome_eur, bl = r.cost.baseline_per_outcome_eur;
+    return `<div class="sc${s === result.selected ? " active" : ""}" data-sc="${s}" title="Make this the active scenario"><h4>${s}${s === result.selected ? " · active" : ""}</h4>
+      <div class="big">${eur(cpo)} <small>per ${result.unit}</small></div>
+      <div class="bar"><i style="width:${cpo != null && bl > 0 ? Math.min(100, 100 * cpo / bl) : 0}%"></i></div>
+      <div class="help">baseline today ${eur(bl)}</div>
+      <div class="kv"><span>units/mo</span><span>${fmt(r.month.units)}</span><span>input</span><span>${fmt(r.month.input)}</span><span>cached</span><span>${fmt(r.month.cached)}</span><span>output</span><span>${fmt(r.month.output)}</span></div></div>`; }).join("");
+  const fl = [];
+  if (b.flags.unbounded) fl.push(`<div class="note warn"><b>T(∞)</b> — no hard stop per task: cost is unbounded. Set a max tokens per task.</div>`);
+  if (b.flags.capped) fl.push(`<div class="note warn">Hard stop is hit in the base scenario — expect a lower success rate than entered.</div>`);
+  if (b.flags.ptu_signal) fl.push(`<div class="note">Volume above the PTU break-even placeholder — consider provisioned throughput <b>in the Run phase only</b>.</div>`);
+  fl.push(`<div class="note"><span class="pill">${result.bigT}</span> per ${result.unit}: ${fmt(b.per_unit.input)} input / ${fmt(b.per_unit.output)} output / ${fmt(b.per_unit.cacheable)} cacheable tokens</div>`);
+  $("flags").innerHTML = fl.join("");
+
+  // section 4: ranking
+  const filters = { profile: profileId === "custom" ? undefined : profileId, weights: profileId === "custom" ? customWeights : undefined,
+    minInt: +$("minInt").value || 0, maxCost: $("maxCost").value === "" ? null : +$("maxCost").value,
+    creatorQuery: $("creator").value, since: $("since").value, onlyComplete: $("complete").checked,
+    providers, inTokens: b.month.input, outTokens: b.month.output, cachedTokens: b.month.cached };
+  ranked = rankModels(models, filters);
+  const sorted = sortRows(ranked.rows);
+  renderTable(sorted); renderChart(ranked.rows); renderH2H(ranked.rows);
+
+  // section 5: cost & tuning
+  $("cscen").innerHTML = $("scen").innerHTML;
+  const sel = b.model.selection, used = b.model.used;
+  $("model").innerHTML = (used ? `<div><b>${esc(used.name)}</b> <span style="color:var(--text-2)">(${b.model.price_source})</span> — $${used.usd_per_1m_input} / $${used.usd_per_1m_output} per 1M in/out${used.usd_per_1m_cache_hit != null ? `, cache hit $${used.usd_per_1m_cache_hit}` : ""}${used.intelligence_index != null ? ` · AA intelligence ${used.intelligence_index}` : ""}</div>` : `<div style="color:var(--text-2)">No model priced yet — fetch models above, click a row, or enter a price manually.</div>`)
+    + `<div class="help" style="margin-top:6px">${sel.note}</div>`;
+  $("bom").querySelector("tbody").innerHTML = b.bom.map(r => `<tr><td>${r.component}</td><td>${r.role}</td><td>${r.sku_hint}</td><td class="num">${r.quantity < 100 ? r.quantity : fmt(r.quantity)}</td><td>${r.unit}</td><td style="color:var(--text-2)">${r.source}</td></tr>`).join("");
+
+  const levers = { cacheTarget: +$("tkLc").value / 100, trimPct: +$("tkLt").value / 100, shortenPct: +$("tkLs").value / 100 };
+  if (currentArch === "agentic") levers.agentDepth = +$("tkLa").value;
+  $("tkLcO").textContent = Math.round(levers.cacheTarget * 100) + "%"; $("tkLtO").textContent = Math.round(levers.trimPct * 100) + "%"; $("tkLsO").textContent = Math.round(levers.shortenPct * 100) + "%"; $("tkLaO").textContent = $("tkLa").value;
+  const tuned = tuneScenario(currentArch, params, cfg, models, ov, selectedScenario, levers);
+  const today = tuned.today, optd = tuned.optimized;
+  const sr = ($("tkSR").value !== "" ? +$("tkSR").value : Math.round(today.assumptions.q * 100)) / 100;
+  const succToday = today.cost.outcomes_month, succOpt = today.month.units * sr;
+  const val = $("tkV").value === "" ? null : +$("tkV").value * succOpt;
+  const lo = Math.max(1, +$("tkTl").value) / 100, hi = Math.max(lo * 100, +$("tkTh").value) / 100;
+  const row = c => ({ month: c.cost.model_eur_month, perOutcome: c.cost.cost_per_outcome_eur, tcaLo: c.cost.model_eur_month == null ? null : c.cost.model_eur_month / hi, tcaHi: c.cost.model_eur_month == null ? null : c.cost.model_eur_month / lo });
+  const A = row(today), B = row(optd);
+  const delta = (a, b) => { if (!a) return ""; const d = Math.round((a - b) / a * 100); return d > 0 ? `<span class="good">−${d}%</span>` : '<span class="na">–</span>'; };
+  const ek = v => v == null ? '<span class="na">–</span>' : eur(v);
+  const roi = (m, l, h) => val == null || !m ? null : { lo: val / (m / h), hi: val / (m / l) };
+  const roiA = roi(A.month, lo, hi), roiB = roi(B.month, lo, hi);
+  const roiTxt = r => r == null ? '<span class="na">–</span>' : `${r.lo.toFixed(1)}× – ${r.hi.toFixed(1)}×`;
+  $("tkKpis").innerHTML = [
+    ["Monthly model cost", ek(B.month), `today ${ek(A.month)}`],
+    ["Cost per outcome", ek(B.perOutcome), `today ${ek(A.perOutcome)}`],
+    ["Est. total cost of AI / mo", B.month == null ? "—" : `${ek(B.tcaLo)} – ${ek(B.tcaHi)}`, `tokens = ${Math.round(lo * 100)}–${Math.round(hi * 100)}% of AI spend`],
+    ["ROI on total cost of AI", roiTxt(roiB), val == null ? "enter value per success" : `today ${roiTxt(roiA)}`],
+  ].map(([k, v, sub]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`).join("");
+  $("tkTable").innerHTML = `<thead><tr><th style="text-align:left">Metric</th><th>Today</th><th>Optimized</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Monthly model cost</td><td>${ek(A.month)}</td><td>${ek(B.month)}</td><td>${delta(A.month, B.month)}</td></tr>
+    <tr><td>Cost per outcome</td><td>${ek(A.perOutcome)}</td><td>${ek(B.perOutcome)}</td><td>${delta(A.perOutcome, B.perOutcome)}</td></tr>
+    <tr><td>Est. total cost of AI / month</td><td>${A.month == null ? "—" : ek(A.tcaLo) + " – " + ek(A.tcaHi)}</td><td>${B.month == null ? "—" : ek(B.tcaLo) + " – " + ek(B.tcaHi)}</td><td>${delta(A.tcaHi, B.tcaHi)}</td></tr>
+    ${tuned.steps_capped != null ? `<tr><td>Agent steps</td><td>${params.steps ?? defaultsFor("agentic").steps}</td><td>${tuned.steps_capped}</td><td></td></tr>` : ""}
+  </tbody>`;
+
+  const src = cfg.sources;
+  $("notes").innerHTML = b.notes.map(n => `<div class="note">${n}</div>`).join("") + `<div class="consult"><table><thead><tr><th>Assumption</th><th>Value</th><th>Source</th><th>Status</th></tr></thead><tbody>${Object.entries(src).map(([k, v]) => `<tr><td>${k}</td><td>${JSON.stringify(k.split(".").reduce((o, s) => o?.[s], cfg.defaults))}</td><td style="color:var(--text-2)">${v.source}</td><td>${v.status}</td></tr>`).join("")}</tbody></table></div>`;
+
+  saveState();
+}
+
+// ---------- state persistence ----------
+function meta() { return { name: $("m_name").value, outcome_unit: $("m_unit").value, count_source: $("m_count").value, quality_floor: $("m_floor").value }; }
+function saveState() {
+  try { localStorage.setItem("nav_state", JSON.stringify({ archetype: currentArch, scenario: selectedScenario, params: readParams(), meta: meta(),
+    profileId, profileTouched, customWeights, minIntTouched, minInt: $("minInt").value, maxCost: $("maxCost").value, creator: $("creator").value, since: $("since").value, complete: $("complete").checked,
+    pickedModel, p_in: $("p_in").value, p_out: $("p_out").value, p_cache: $("p_cache").value,
+    tkLc: $("tkLc").value, tkLt: $("tkLt").value, tkLs: $("tkLs").value, tkLa: $("tkLa").value, tkV: $("tkV").value, tkSR: $("tkSR").value, tkTl: $("tkTl").value, tkTh: $("tkTh").value })); } catch {}
+}
+function restoreState() {
+  try {
+    const st = JSON.parse(localStorage.getItem("nav_state") || "null"); if (!st) return false;
+    if (ARCHETYPES[st.archetype]) currentArch = st.archetype;
+    if (["low", "base", "high"].includes(st.scenario)) selectedScenario = st.scenario;
+    renderArch(); renderFields(false);
+    for (const [k, v] of Object.entries(st.params || {})) { const el = $("fields").querySelector(`[data-id="${k}"]`); if (!el) continue; if (el.classList.contains("seg")) { el.dataset.value = String(v); el.querySelectorAll("button").forEach(b => b.className = b.dataset.v === String(v) ? "on" + (el.dataset.kind === "bool" && v === true ? " yes" : "") : ""); } else el.value = v; }
+    applyShowIf();
+    $("m_name").value = st.meta?.name || ""; $("m_unit").value = st.meta?.outcome_unit || ""; $("m_count").value = st.meta?.count_source || ""; $("m_floor").value = st.meta?.quality_floor || "";
+    profileId = st.profileId || profileId; profileTouched = !!st.profileTouched; customWeights = st.customWeights || {};
+    minIntTouched = !!st.minIntTouched; if (st.minInt != null) $("minInt").value = st.minInt;
+    if (st.maxCost != null) $("maxCost").value = st.maxCost; if (st.creator != null) $("creator").value = st.creator; if (st.since != null) $("since").value = st.since;
+    if (st.complete != null) $("complete").checked = st.complete;
+    pickedModel = st.pickedModel || null;
+    if (st.p_in != null) $("p_in").value = st.p_in; if (st.p_out != null) $("p_out").value = st.p_out; if (st.p_cache != null) $("p_cache").value = st.p_cache;
+    for (const id of ["tkLc", "tkLt", "tkLs", "tkLa", "tkV", "tkSR", "tkTl", "tkTh"]) if (st[id] != null) $(id).value = st[id];
+    $("tkLaRow").style.display = currentArch === "agentic" ? "" : "none"; $("tkLaHelp").style.display = currentArch === "agentic" ? "" : "none";
+    renderProfiles(); renderWeights();
+    return true;
+  } catch { return false; }
+}
+
+// ---------- export ----------
+function download(name, text) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" })); a.download = name; a.click(); }
+$("dlJson").onclick = () => result && download("bom.json", JSON.stringify(toBomJson(result, meta()), null, 2));
+$("dlMd").onclick = () => result && download("architecture.md", toArchitectureMarkdown(result, meta()));
+$("copyMd").onclick = async () => { if (result) { await navigator.clipboard.writeText(toArchitectureMarkdown(result, meta())); $("copyMd").textContent = "Copied ✓"; setTimeout(() => $("copyMd").textContent = "Copy markdown for Azure estimator", 1500); } };
+$("csv").onclick = () => {
+  const rows = sortRows(ranked.rows);
+  const head = ["rank", "model", "creator", "fit_score", "intelligence", "coding", "agentic", "usd_per_1m_blended", "usd_per_task", "tokens_per_sec", "usd_per_month", "partial"];
+  const lines = [head.join(",")].concat(rows.map((r, i) => [i + 1, `"${(r.name || "").replace(/"/g, '""')}"`, `"${r.creator || ""}"`, r.fit.toFixed(1), r.intelligence_index ?? "", r.coding_index ?? "", r.agentic_index ?? "", r.usd_per_1m_blended_3to1 ?? "", r.cost_per_task_usd ?? "", r.output_tokens_per_sec ?? "", r.monthly == null ? "" : r.monthly.toFixed(2), r.partial].join(",")));
+  lines.push("", `"Profile: ${(TASKFIT_PROFILES[profileId] || {}).name || "Custom"}; archetype: ${currentArch}"`, '"Data: Artificial Analysis (https://artificialanalysis.ai)"');
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = `model-table-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ---------- boot ----------
+async function whoami() { if (!SESSION) return null; try { const r = await fetch("/api/auth", { headers: authHeaders() }); if (!r.ok) return null; return await r.json(); } catch { return null; } }
+if (!restoreState()) { renderArch(); renderFields(false); renderProfiles(); renderWeights(); }
+run();
+whoami().then(me => { if (me) { showApp(me); loadModels(); } else { SESSION = null; showGate(); } });
+</script>
+</body>
+</html>
