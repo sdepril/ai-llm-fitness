@@ -433,15 +433,15 @@ export const WEIGHT_LEVELS = [
   { v: 0, label: "Not needed" }, { v: 25, label: "A little" }, { v: 50, label: "Matters" }, { v: 75, label: "A lot" }, { v: 100, label: "Critical" },
 ];
 export const TASKFIT_PROFILES = {
-  chat: { name: "Customer service", desc: "High-volume, user-facing chat. Fast first response and low price matter most; enough agentic ability to call tools (order lookup, ticketing).",
+  chat: { name: "Speed & price first", desc: "For high-volume, user-facing use cases. Fast first response and low price matter most; enough agentic ability to call tools (order lookup, ticketing) — capability itself is secondary.",
     w: { intelligence_index: 15, agentic_index: 15, usd_per_1m_blended_3to1: 25, output_tokens_per_sec: 15, ttft_sec: 30 } },
-  code: { name: "Coding assistant", desc: "Code generation, review and refactoring. Coding capability leads, but understanding the requirement and the existing codebase matters too — not just isolated code-gen benchmarks.",
+  code: { name: "Coding accuracy first", desc: "For generating, reviewing or refactoring code. Coding capability leads, but understanding the requirement and the existing codebase matters too — not just isolated code-gen benchmarks.",
     w: { coding_index: 35, intelligence_index: 22, agentic_index: 18, cost_per_task_usd: 15, output_tokens_per_sec: 10 } },
-  agent: { name: "Agentic workflows", desc: "Multi-step automation with tools (back-office, IT ops, research agents). Agentic ability first, with a firm eye on what a completed task really costs.",
+  agent: { name: "Tool-use reliability first", desc: "For multi-step automation with tools (back-office, IT ops, research agents). Reliable tool calling and task completion lead, with a firm eye on what a completed task really costs.",
     w: { agentic_index: 40, intelligence_index: 25, cost_per_task_usd: 25, output_tokens_per_sec: 10 } },
-  bulk: { name: "Bulk processing", desc: "Summarizing, classifying, extracting at scale, often in batch. Price per token dominates; a minimum intelligence keeps quality acceptable.",
+  bulk: { name: "Cheapest at scale", desc: "For summarizing, classifying or extracting at volume, often in batch. Price per token dominates; a minimum intelligence keeps quality acceptable.",
     w: { usd_per_1m_blended_3to1: 60, output_tokens_per_sec: 20, intelligence_index: 20 } },
-  analysis: { name: "Complex analysis", desc: "Advisory, reasoning-heavy, low-volume work (strategy, legal or financial analysis). Capability first; cost is secondary.",
+  analysis: { name: "Deep reasoning first", desc: "For advisory, reasoning-heavy, low-volume work (strategy, legal or financial analysis). Capability leads; cost is secondary.",
     w: { intelligence_index: 60, cost_per_task_usd: 20, agentic_index: 10, usd_per_1m_blended_3to1: 10 } },
 };
 export const TASKFIT_PROFILE_OF = { document: "bulk", classification: "bulk", assistant: "chat", rag: "chat", agentic: "agent" };
