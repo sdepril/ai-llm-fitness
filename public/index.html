@@ -734,10 +734,16 @@ function run() {
     if ((m.intelligence_index ?? -1) >= minIntelligence && (costFloor == null || monthly < costFloor)) costFloor = monthly;
   }
   const costCeiling = Math.max(100, Math.ceil(maxObserved / 50) * 50 || 100);
+  const costFloorInt = costFloor != null ? Math.ceil(costFloor) : 0;
+  // Step scales with the span so the slider always gives ~50-100 stops to fine-tune with,
+  // instead of a flat $10 that's coarse once min/max are clamped to a narrow workload-specific range.
+  const costSpan = Math.max(1, costCeiling - costFloorInt);
+  const costStep = costSpan <= 40 ? 1 : costSpan <= 100 ? 2 : costSpan <= 250 ? 5 : costSpan <= 1000 ? 10 : 25;
   $("maxCost").max = costCeiling;
-  $("maxCost").min = costFloor != null ? Math.ceil(costFloor) : 0;
+  $("maxCost").min = costFloorInt;
+  $("maxCost").step = costStep;
   if (!maxCostTouched) $("maxCost").value = costCeiling;
-  else if (costFloor != null && +$("maxCost").value < costFloor) $("maxCost").value = Math.ceil(costFloor);
+  else if (costFloor != null && +$("maxCost").value < costFloor) $("maxCost").value = costFloorInt;
 
   const maxCost = maxCostTouched ? (+$("maxCost").value || null) : null;
   const selection = { ...baseSelection, maxCost };
