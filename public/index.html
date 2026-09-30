@@ -391,11 +391,15 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </section>
 
     <section class="panel reveal" id="sec-export">
-      <div class="hd"><span class="n">5</span><h2>Export</h2></div>
-      <details class="collapse">
-        <summary>Download options</summary>
+      <div class="hd"><span class="n">5</span><h2>Export</h2><span class="desc">The full business case — use case, model, BOM, KPIs before/after tuning, unit economics and assumptions.</span></div>
+      <div class="btns">
+        <button class="btn primary" id="dlXlsx">Download Excel (.xlsx)</button>
+        <button class="btn primary" id="dlPdf">Download PDF report</button>
+      </div>
+      <details class="collapse" style="margin-top:14px">
+        <summary>More export options</summary>
         <div class="btns">
-          <button class="btn primary" id="dlJson">Download bom.json</button>
+          <button class="btn" id="dlJson">Download bom.json</button>
           <button class="btn" id="dlMd">Download architecture.md</button>
           <button class="btn ghost" id="copyMd">Copy markdown for Azure estimator</button>
           <button class="btn" id="csv">Export model table (CSV)</button>
@@ -410,6 +414,9 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
   </div>
 </div>
 
+<script src="./vendor/xlsx.min.js"></script>
+<script src="./vendor/jspdf.umd.min.js"></script>
+<script src="./vendor/jspdf.plugin.autotable.min.js"></script>
 <script type="module">
 import { ARCHETYPES, defaultsFor, compute, selectedOf, toBomJson, toArchitectureMarkdown, rankModels, tuneScenario, TASKFIT_METRICS, TASKFIT_PROFILES, TASKFIT_PROFILE_OF, WEIGHT_LEVELS, intelligenceFloor, priceTokens } from "./engine.js";
 
@@ -454,7 +461,7 @@ $("gateForm").addEventListener("submit", async e => {
 });
 
 // ---------- state ----------
-let models = [], result = null, ranked = { rows: [], total: 0 };
+let models = [], result = null, ranked = { rows: [], total: 0 }, bizExport = null;
 let currentArch = Object.keys(ARCHETYPES)[0];
 let selectedScenario = "base";
 let profileId = TASKFIT_PROFILE_OF[currentArch] || "bulk", profileTouched = false;
@@ -838,6 +845,21 @@ function run() {
   const src = cfg.sources;
   $("notes").innerHTML = b.notes.map(n => `<div class="note">${n}</div>`).join("") + `<details class="collapse" style="margin-top:10px"><summary>Assumptions &amp; audit trail</summary><div class="consult"><table><thead><tr><th>Assumption</th><th>Value</th><th>Source</th><th>Status</th></tr></thead><tbody>${Object.entries(src).map(([k, v]) => `<tr><td>${k}</td><td>${JSON.stringify(k.split(".").reduce((o, s) => o?.[s], cfg.defaults))}</td><td style="color:var(--text-2)">${v.source}</td><td>${v.status}</td></tr>`).join("")}</tbody></table></div></details>`;
 
+  // Snapshot of the full business case, in plain (non-HTML) form, for the Excel/PDF exports —
+  // mirrors bizKpis/tkKpis/tkTable above exactly, computed once here instead of duplicated per export.
+  bizExport = {
+    meta: meta(), archetype: result.label, unit: result.unit, scenario: result.selected,
+    model: b.model.used, modelNote: sel.note,
+    tokenProfile: { low: result.scenarios.low.month, base: b.month, high: result.scenarios.high.month },
+    bom: b.bom,
+    before: { baselineMonthly, aiMonthly, savingsMonthly, roi: roiBiz, tcaLo: A.tcaLo, tcaHi: A.tcaHi, costPerOutcome: A.perOutcome, outcomesMonth: b.cost.outcomes_month, baselinePerOutcome: b.cost.baseline_per_outcome_eur },
+    after: { monthlyModelCost: B.month, costPerOutcome: B.perOutcome, tcaLo: B.tcaLo, tcaHi: B.tcaHi, roi: roiB, agentStepsCapped: tuned.steps_capped },
+    tcaRange: { lo, hi },
+    assumptions: Object.entries(src).map(([k, v]) => ({ key: k, value: k.split(".").reduce((o, s) => o?.[s], cfg.defaults), source: v.source, status: v.status })),
+    notes: b.notes,
+    generated: new Date().toISOString().slice(0, 10),
+  };
+
   saveState();
 }
 
@@ -882,6 +904,150 @@ $("csv").onclick = () => {
   const lines = [head.join(",")].concat(rows.map((r, i) => [i + 1, `"${(r.name || "").replace(/"/g, '""')}"`, `"${r.creator || ""}"`, r.fit.toFixed(1), r.intelligence_index ?? "", r.coding_index ?? "", r.agentic_index ?? "", r.usd_per_1m_blended_3to1 ?? "", r.cost_per_task_usd ?? "", r.output_tokens_per_sec ?? "", r.monthly == null ? "" : r.monthly.toFixed(2), r.partial].join(",")));
   lines.push("", `"Profile: ${(TASKFIT_PROFILES[profileId] || {}).name || "Custom"}; archetype: ${currentArch}"`, '"Data: Artificial Analysis (https://artificialanalysis.ai)"');
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = `model-table-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+};
+
+// ---------- Excel & PDF business-case exports (uses ./vendor/xlsx.min.js and jsPDF, loaded as plain
+// globals above the module script) ----------
+const fnum = (n, d = 2) => n == null ? null : +n.toFixed(d);
+const slug = s => (s || "ai-cost-navigator").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "ai-cost-navigator";
+
+function buildWorkbook(x) {
+  const wb = XLSX.utils.book_new();
+  const summary = [
+    ["AI Cost Navigator — Business Case"],
+    ["Use case", x.meta.name || ""],
+    ["Archetype", x.archetype],
+    ["Outcome unit", x.meta.outcome_unit || x.unit],
+    ["Sizing scenario", x.scenario],
+    ["Model", x.model ? x.model.name : "not priced yet"],
+    ["Model note", x.modelNote || ""],
+    ["Generated", x.generated],
+    [],
+    ["Before tuning (vs. manual baseline)"],
+    ["Baseline cost (manual), EUR/mo", fnum(x.before.baselineMonthly)],
+    ["AI cost today, EUR/mo", fnum(x.before.aiMonthly)],
+    ["Cost per outcome, EUR", fnum(x.before.costPerOutcome, 4)],
+    ["Monthly savings, EUR", fnum(x.before.savingsMonthly)],
+    ["ROI vs. total cost of AI — low", x.before.roi ? fnum(x.before.roi.lo, 1) : null],
+    ["ROI vs. total cost of AI — high", x.before.roi ? fnum(x.before.roi.hi, 1) : null],
+    [],
+    ["After tuning (optimization levers applied)"],
+    ["Monthly model cost, EUR", fnum(x.after.monthlyModelCost)],
+    ["Cost per outcome, EUR", fnum(x.after.costPerOutcome, 4)],
+    ["Est. total cost of AI, EUR/mo — low", fnum(x.after.tcaLo)],
+    ["Est. total cost of AI, EUR/mo — high", fnum(x.after.tcaHi)],
+    ["ROI on total cost of AI — low", x.after.roi ? fnum(x.after.roi.lo, 1) : null],
+    ["ROI on total cost of AI — high", x.after.roi ? fnum(x.after.roi.hi, 1) : null],
+  ];
+  const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+  wsSummary["!cols"] = [{ wch: 34 }, { wch: 40 }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+  const tpRows = [["Scenario", "Units/mo", "Input tokens", "Cached tokens", "Output tokens"]]
+    .concat(["low", "base", "high"].map(s => { const m = x.tokenProfile[s]; return [s, m.units, m.input, m.cached, m.output]; }));
+  const wsTP = XLSX.utils.aoa_to_sheet(tpRows);
+  wsTP["!cols"] = [{ wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, wsTP, "Token profile");
+
+  const bomRows = [["Component", "Role", "SKU hint", "Quantity", "Unit", "Source"]]
+    .concat(x.bom.map(r => [r.component, r.role, r.sku_hint, r.quantity, r.unit, r.source]));
+  const wsBom = XLSX.utils.aoa_to_sheet(bomRows);
+  wsBom["!cols"] = [{ wch: 30 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsBom, "BOM");
+
+  const asRows = [["Assumption", "Value", "Source", "Status"]]
+    .concat(x.assumptions.map(a => [a.key, typeof a.value === "object" ? JSON.stringify(a.value) : a.value, a.source, a.status]));
+  const wsAs = XLSX.utils.aoa_to_sheet(asRows);
+  wsAs["!cols"] = [{ wch: 32 }, { wch: 16 }, { wch: 60 }, { wch: 22 }];
+  XLSX.utils.book_append_sheet(wb, wsAs, "Assumptions");
+
+  return wb;
+}
+$("dlXlsx").onclick = () => {
+  if (!bizExport) return;
+  XLSX.writeFile(buildWorkbook(bizExport), `${slug(bizExport.meta.name)}-business-case-${bizExport.generated}.xlsx`);
+};
+
+const hex2rgb = hex => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const BRAND = { navy: hex2rgb("#1a3356"), navy2: hex2rgb("#061a36"), accent: hex2rgb("#ed744b"), cream: hex2rgb("#eaddc1"), text: hex2rgb("#0d2443"), text2: hex2rgb("#52657d") };
+const eurS = n => n == null ? "—" : "€ " + (Math.abs(n) < 1 ? n.toFixed(3) : n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 }));
+const roiS = r => r == null ? "—" : `${r.lo.toFixed(1)}× – ${r.hi.toFixed(1)}×`;
+
+function buildPdfReport(x) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = doc.internal.pageSize.getWidth();
+  doc.setProperties({ title: `${x.meta.name || "AI use case"} — business case`, subject: "AI Cost Navigator business case", author: "Costra" });
+
+  // brand header
+  doc.setFillColor(...BRAND.navy2); doc.rect(0, 0, W, 92, "F");
+  doc.setFillColor(...BRAND.accent); doc.rect(0, 92, W, 3, "F");
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+  doc.text("COSTRA", 40, 42);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(...BRAND.cream);
+  doc.text("AI Cost Navigator — Business Case", 40, 62);
+  doc.setFontSize(9); doc.setTextColor(225, 225, 230);
+  doc.text(`Generated ${x.generated}`, W - 40, 42, { align: "right" });
+  if (x.meta.name) doc.text(x.meta.name, W - 40, 56, { align: "right" });
+
+  let y = 122;
+  doc.setTextColor(...BRAND.text); doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+  doc.text(x.meta.name || "AI use case", 40, y);
+  y += 16;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...BRAND.text2);
+  doc.text(`${x.archetype} · outcome unit: ${x.meta.outcome_unit || x.unit} · sizing scenario: ${x.scenario}`, 40, y);
+  y += 24;
+
+  doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(...BRAND.text);
+  doc.text("Priced model", 40, y); y += 14;
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(...BRAND.text2);
+  doc.text(x.model ? `${x.model.name} — $${x.model.usd_per_1m_input} / $${x.model.usd_per_1m_output} per 1M in/out${x.model.intelligence_index != null ? ` · AA intelligence ${x.model.intelligence_index}` : ""}` : "No model priced yet — enter a price manually in the app.", 40, y);
+  y += 12;
+  if (x.modelNote) { const lines = doc.splitTextToSize(x.modelNote, W - 80); doc.text(lines, 40, y + 8); y += 8 + lines.length * 11; }
+  y += 16;
+
+  doc.autoTable({
+    startY: y,
+    head: [["Business case", "Before tuning", "After tuning"]],
+    body: [
+      ["Baseline cost (manual) / mo", eurS(x.before.baselineMonthly), ""],
+      ["AI cost / mo", eurS(x.before.aiMonthly), eurS(x.after.monthlyModelCost)],
+      ["Cost per outcome", eurS(x.before.costPerOutcome), eurS(x.after.costPerOutcome)],
+      ["Est. total cost of AI / mo", x.before.aiMonthly == null ? "—" : `${eurS(x.before.tcaLo)} – ${eurS(x.before.tcaHi)}`, x.after.monthlyModelCost == null ? "—" : `${eurS(x.after.tcaLo)} – ${eurS(x.after.tcaHi)}`],
+      ["Monthly savings vs. manual", eurS(x.before.savingsMonthly), ""],
+      ["ROI vs. total cost of AI", roiS(x.before.roi), roiS(x.after.roi)],
+    ],
+    theme: "grid",
+    headStyles: { fillColor: BRAND.navy, textColor: 255, fontStyle: "bold", fontSize: 9.5 },
+    styles: { fontSize: 9, textColor: BRAND.text, cellPadding: 6 },
+    alternateRowStyles: { fillColor: [248, 246, 241] },
+    margin: { left: 40, right: 40 },
+  });
+  y = doc.lastAutoTable.finalY + 24;
+
+  doc.autoTable({
+    startY: y,
+    head: [["Component", "Role", "SKU hint", "Qty", "Unit"]],
+    body: x.bom.map(r => [r.component, r.role, r.sku_hint, r.quantity < 100 ? String(r.quantity) : Math.round(r.quantity).toLocaleString("en-US"), r.unit]),
+    theme: "grid",
+    headStyles: { fillColor: BRAND.navy, textColor: 255, fontStyle: "bold", fontSize: 9.5 },
+    styles: { fontSize: 8.5, textColor: BRAND.text, cellPadding: 5 },
+    alternateRowStyles: { fillColor: [248, 246, 241] },
+    columnStyles: { 3: { halign: "right" } },
+    margin: { left: 40, right: 40 },
+    didDrawPage: () => {
+      const H = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(...BRAND.accent); doc.setLineWidth(1); doc.line(40, H - 40, W - 40, H - 40);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(...BRAND.text2);
+      doc.text("Model prices: Artificial Analysis (artificialanalysis.ai). Formulas: Costra AI Use-Case Capture spec v0.1. Model + embeddings only — infra via the Azure estimator, labour via the ledger.", 40, H - 26, { maxWidth: W - 80 });
+    },
+  });
+
+  return doc;
+}
+$("dlPdf").onclick = () => {
+  if (!bizExport) return;
+  buildPdfReport(bizExport).save(`${slug(bizExport.meta.name)}-business-case-${bizExport.generated}.pdf`);
 };
 
 // ---------- boot ----------
