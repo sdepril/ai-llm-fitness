@@ -294,8 +294,8 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
           <p class="w-help">Hard floor from step 2's priorities — can't go lower. Slide up to require a smarter (usually pricier) model.</p>
         </div>
         <div>
-          <div class="w-row"><label for="maxCost">Max $ / month</label><input type="range" id="maxCost" min="0" max="1000" step="10" value="1000"><output id="maxCostO"></output></div>
-          <p class="w-help">Ceiling at today's token volume. Can't drop below the cheapest model that still clears the intelligence floor. Dragged to the max = no ceiling.</p>
+          <div class="w-row" style="grid-template-columns:1fr 130px"><label for="maxCost">Max $ / month</label><input type="number" id="maxCost" min="0" step="1" inputmode="numeric" placeholder="no cap"></div>
+          <p class="w-help" id="maxCostHelp">Ceiling at today's token volume. Leave blank for no ceiling.</p>
         </div>
       </div>
       <div class="row" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
@@ -565,7 +565,7 @@ $("weights").addEventListener("click", e => {
   renderWeights(); run();
 });
 $("minInt").addEventListener("input", () => { minIntTouched = true; run(); });
-$("maxCost").addEventListener("input", () => { maxCostTouched = true; run(); });
+$("maxCost").addEventListener("input", () => { maxCostTouched = $("maxCost").value !== ""; run(); });
 ["since", "complete"].forEach(id => $(id).addEventListener("input", run));
 
 // ---------- providers dropdown ----------
@@ -722,7 +722,7 @@ function run() {
   };
 
   // Probe pass (uncapped): get this workload's sized token volume and the cheapest priced model
-  // that still clears the intelligence floor — that price is the hard floor for the cost slider,
+  // that still clears the intelligence floor — that price is the hard floor for the cost field,
   // since any lower cap would exclude every model that still meets the requirement.
   const probe = compute(currentArch, params, cfg, models, ov, selectedScenario, { ...baseSelection, maxCost: null });
   const bProbe = selectedOf(probe);
@@ -735,15 +735,11 @@ function run() {
   }
   const costCeiling = Math.max(100, Math.ceil(maxObserved / 50) * 50 || 100);
   const costFloorInt = costFloor != null ? Math.ceil(costFloor) : 0;
-  // Step scales with the span so the slider always gives ~50-100 stops to fine-tune with,
-  // instead of a flat $10 that's coarse once min/max are clamped to a narrow workload-specific range.
-  const costSpan = Math.max(1, costCeiling - costFloorInt);
-  const costStep = costSpan <= 40 ? 1 : costSpan <= 100 ? 2 : costSpan <= 250 ? 5 : costSpan <= 1000 ? 10 : 25;
-  $("maxCost").max = costCeiling;
   $("maxCost").min = costFloorInt;
-  $("maxCost").step = costStep;
-  if (!maxCostTouched) $("maxCost").value = costCeiling;
-  else if (costFloor != null && +$("maxCost").value < costFloor) $("maxCost").value = costFloorInt;
+  if (maxCostTouched && +$("maxCost").value < costFloorInt) $("maxCost").value = costFloorInt;
+  $("maxCostHelp").textContent = costFloor == null
+    ? "Ceiling at today's token volume. Leave blank for no ceiling."
+    : `Can't type below $${costFloorInt}/month — the cheapest model that still clears the intelligence floor above. The priciest model in the list would run about $${costCeiling.toLocaleString("en-US")}/month. Leave blank for no ceiling.`;
 
   const maxCost = maxCostTouched ? (+$("maxCost").value || null) : null;
   const selection = { ...baseSelection, maxCost };
@@ -774,7 +770,6 @@ function run() {
 
   // section 4: ranking
   $("minIntO").textContent = $("minInt").value;
-  $("maxCostO").textContent = maxCost != null ? "$" + maxCost : "any";
   const filters = { profile: baseSelection.profile, weights: baseSelection.weights,
     minInt: minIntelligence, maxCost,
     since: baseSelection.since, onlyComplete: baseSelection.onlyComplete,
