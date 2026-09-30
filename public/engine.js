@@ -205,10 +205,10 @@ function cacheHit(cfg, sc) {
 }
 
 // ---------- model selection ----------
-// Maps the step-3 "Intelligence" priority (0-100, same scale as WEIGHT_LEVELS) onto a minimum Artificial
+// Maps the step-2 "Intelligence" priority (0-100, same scale as WEIGHT_LEVELS) onto a minimum Artificial
 // Analysis intelligence index, by linear interpolation across cfg.defaults.intelligence_floor_by_weight.
 // This replaces the old quality_bar dropdown: the model that actually gets priced now tracks the same
-// priority weight shown (and editable) in step 3, instead of a separate, coarser step-1 control.
+// priority weight shown (and editable) in step 2, instead of a separate, coarser control.
 export function intelligenceFloor(weight, cfg) {
   const table = cfg.defaults.intelligence_floor_by_weight;
   const levels = Object.keys(table).map(Number).sort((a, b) => a - b);
@@ -220,7 +220,7 @@ export function intelligenceFloor(weight, cfg) {
   return Math.round(table[levels[levels.length - 1]]);
 }
 // Picks the model that actually gets priced (BOM, cost, business case): the top fit-score row from
-// rankModels() — the same weighted ranking step 4's table shows, using ALL of step 3's priority
+// rankModels() — the same weighted ranking step 3's table shows, using ALL of step 2's priority
 // categories, not just intelligence — filtered by the same hard floors as the table (min intelligence,
 // max $/month, released-after, only-complete, providers) plus a latency-driven tokens/sec floor.
 export function selectModel(models, opts, cfg) {
@@ -388,36 +388,6 @@ export function toArchitectureMarkdown(result, meta = {}) {
   return L.join("\n");
 }
 
-// ---------- hand-off to LLM Task-Fit (deep link) ----------
-const PROFILE_OF = { document: "bulk", classification: "bulk", assistant: "chat", rag: "chat", agentic: "agent" };
-export function toTaskFitParams(result, cfg, meta = {}) {
-  const b = selectedOf(result), p = result.params;
-  const callsPerUnit = result.archetype === "assistant" ? p.turns : result.archetype === "agentic" ? (b.month.attempts ? Math.max(1, Math.round((b.per_unit.input + b.per_unit.output) / Math.max(1, p.system_tokens + p.step_output_tokens + p.tools_per_step * p.tool_result_tokens))) : p.steps) : 1;
-  const cachePct = Math.round(100 * b.month.cached / Math.max(1, b.month.input + b.month.cached));
-  const q = new URLSearchParams({
-    profile: PROFILE_OF[result.archetype] || "custom",
-    in: ((b.month.input + b.month.cached) / 1e6).toFixed(1),
-    out: (b.month.output / 1e6).toFixed(2),
-    cache: String(cachePct),
-    minInt: String(b.model.selection.threshold ?? intelligenceFloor(p.intelligence_weight ?? (TASKFIT_PROFILES[PROFILE_OF[result.archetype] || "bulk"]?.w.intelligence_index ?? 0), cfg)),
-    tkN: String(Math.round(b.month.attempts)),
-    tkK: String(callsPerUnit),
-    tkA: String(result.archetype === "agentic" ? Math.max(1, p.sub_agents + 1) : 1),
-    tkC: String(cachePct),
-    tkI: String(Math.round(b.per_unit.input / callsPerUnit)),
-    tkO: String(Math.round(b.per_unit.output / callsPerUnit)),
-    tkSR: String(Math.round(100 * p.success_rate)),
-    uc: meta.name || result.label,
-  });
-  if (meta.ret) q.set("ret", meta.ret);
-  if (meta.s) q.set("s", meta.s);
-  return q.toString();
-}
-export function toTaskFitUrl(result, cfg, meta = {}) {
-  const base = (cfg.links && cfg.links.taskfit_url) || "https://artificial-analysis-mcp.vercel.app/";
-  return base.replace(/\/?$/, "/") + "?" + toTaskFitParams(result, cfg, meta) + "#tokenomics";
-}
-
 // ---------- Task-Fit ranking (single source of truth: the same weights back the compact "top model" pick
 // during use-case sizing and the full sortable model table). ----------
 export const TASKFIT_METRICS = [
@@ -480,10 +450,6 @@ export function rankModels(models, opts = {}) {
   }
   rows.sort((a, b) => b.fit - a.fit);
   return { profile: weights ? "Custom" : (TASKFIT_PROFILES[profile] || TASKFIT_PROFILES.bulk).name, rows: Number.isFinite(limit) ? rows.slice(0, limit) : rows, total: rows.length };
-}
-// Compact form used for the top-N pick during sizing (kept for callers that only need a short ranked list).
-export function taskFitRank(models, { profile = "bulk", minInt = 0, inTokens = 0, outTokens = 0, cachedTokens = 0, limit = 8 } = {}) {
-  return rankModels(models, { profile, minInt, inTokens, outTokens, cachedTokens, limit });
 }
 
 // ---------- Tokenomics levers: what-ifs applied on top of an already-sized scenario (computeScenario result).

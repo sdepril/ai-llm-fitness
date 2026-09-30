@@ -60,7 +60,7 @@ test("model selection: cheapest above threshold, respects latency", () => {
   assert.equal(s.defaultAlternative.slug, "top");
 });
 
-test("intelligenceFloor: interpolates the step-3 Intelligence weight onto the AA index scale", () => {
+test("intelligenceFloor: interpolates the step-2 Intelligence weight onto the AA index scale", () => {
   assert.equal(intelligenceFloor(0, cfg), 0);
   assert.equal(intelligenceFloor(50, cfg), 55);
   assert.equal(intelligenceFloor(100, cfg), 85);
@@ -83,26 +83,6 @@ test("exports: BOM json and markdown render", () => {
   assert.ok(j.bom.some(b => b.component.includes("AI Search")));
   const md = toArchitectureMarkdown(r, { name: "Policy Q&A" });
   assert.ok(md.includes("| Component |") && md.includes("Cost per outcome"));
-});
-
-test("task-fit deep link carries workload, intelligence floor and tokenomics inputs", async () => {
-  const { toTaskFitUrl } = await import("../public/engine.js");
-  const r = compute("assistant", defaultsFor("assistant"), cfg, models);
-  const u = new URL(toTaskFitUrl(r, cfg, { name: "Helpdesk bot" }));
-  const q = u.searchParams;
-  assert.equal(q.get("profile"), "chat");
-  assert.equal(q.get("minInt"), String(intelligenceFloor(15, cfg))); // chat profile's default intelligence weight (15) -> 24
-  assert.equal(q.get("tkK"), "6");
-  assert.ok(+q.get("in") > 0 && +q.get("out") > 0);
-  assert.equal(u.hash, "#tokenomics");
-});
-
-test("task-fit ranking: bulk profile prefers cheap-and-fast above the intelligence floor", async () => {
-  const { taskFitRank } = await import("../public/engine.js");
-  const ms = models.map(m => ({ ...m, usd_per_1m_blended_3to1: (3 * m.usd_per_1m_input + m.usd_per_1m_output) / 4, ttft_sec: 0.5, coding_index: 50, agentic_index: 50, cost_per_task_usd: m.usd_per_1m_output / 100 }));
-  const r = taskFitRank(ms, { profile: "bulk", minInt: 50, inTokens: 1e8, outTokens: 1e7, cachedTokens: 0 });
-  assert.equal(r.rows[0].slug, "mid");             // cheap is below the floor, top is expensive and slow
-  assert.ok(r.rows[0].monthly < r.rows[1].monthly);
 });
 
 test("rankModels: full table respects filters (minInt, maxCost, creator, onlyComplete) with no cap", async () => {

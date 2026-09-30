@@ -237,8 +237,8 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       <p class="sub">Describe the use case, size the tokens, weigh what matters, pick a model and see cost per outcome — low / base / high — with the tuning levers that decide what a successful outcome really costs.</p>
     </header>
     <nav class="stepnav">
-      <a href="#sec-usecase">1 · Use case</a><a href="#sec-priorities">2 · Priorities</a><a href="#sec-sizing">3 · Token profile</a>
-      <a href="#sec-model">4 · Model</a><a href="#sec-cost">5 · Business case</a><a href="#sec-export">6 · Export</a>
+      <a href="#sec-usecase">1 · Use case</a><a href="#sec-priorities">2 · Priorities</a>
+      <a href="#sec-model">3 · Model &amp; volume</a><a href="#sec-cost">4 · Business case</a><a href="#sec-export">5 · Export</a>
     </nav>
 
     <section class="panel reveal" id="sec-usecase">
@@ -265,7 +265,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </section>
 
     <section class="panel reveal" id="sec-priorities">
-      <div class="hd"><span class="n">2</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything. Every weighted category below drives which model gets priced (step 4), not just the table's sort order.</span></div>
+      <div class="hd"><span class="n">2</span><h2>Priorities</h2><span class="desc">What matters for this workload. Starts from the archetype's usual profile — override anything. Every weighted category below drives which model gets priced (step 3), not just the table's sort order.</span></div>
       <div class="grid2">
         <div>
           <h3>Priority preset</h3>
@@ -279,15 +279,16 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
       </div>
     </section>
 
-    <section class="panel reveal" id="sec-sizing">
-      <div class="hd"><span class="n">3</span><h2>Token profile</h2><span class="desc">Three scenarios (low / base / high) vary tokens-per-word, retries and cache hit. Click one to make it the active scenario — it drives everything below.</span></div>
+    <section class="panel reveal" id="sec-model">
+      <div class="hd"><span class="n">3</span><h2>Model &amp; volume</h2><span class="desc">Size the tokens, then the best fit for this workload is ranked and priced automatically below — click any row to price that model instead.</span></div>
+
+      <h3>Token profile <span style="text-transform:none;letter-spacing:0;font-weight:400">— low / base / high vary tokens-per-word, retries and cache hit. Click one to make it the active scenario — it drives everything below.</span></h3>
       <div class="scen" id="scen"></div>
       <div id="flags"></div>
-    </section>
 
-    <section class="panel reveal" id="sec-model">
-      <div class="hd"><span class="n">4</span><h2>Model</h2><span class="desc">Ranked for this workload. The best fit is priced automatically below — click any row to price that model instead.</span></div>
-      <div class="note" id="reqFloor" style="margin-bottom:14px"></div>
+      <div class="note" id="reqFloor" style="margin:18px 0 14px"></div>
+
+      <h3>Filters</h3>
       <div class="row" style="grid-template-columns:1fr 1fr;gap:20px">
         <div>
           <div class="w-row"><label for="minInt">Min. intelligence</label><input type="range" id="minInt" min="0" max="100" step="1" value="0"><output id="minIntO"></output></div>
@@ -316,31 +317,37 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
         <button class="btn" id="loadModels" style="width:auto">Fetch / refresh models</button>
       </div>
       <div class="h2h" id="h2h" hidden></div>
-      <div class="chart-card" style="margin-bottom:16px">
-        <p class="chart-title">Fit score vs. monthly cost</p>
-        <p class="chart-sub" id="chartSub">Top-left is the sweet spot. Cost axis is logarithmic.</p>
-        <div class="legend" id="legend" hidden></div>
-        <div id="chart"></div>
-        <div class="tip" id="tip"></div>
-      </div>
       <div class="toolbar"><span class="count" id="count"></span><button class="btn" id="clearPick" style="width:auto">Clear manual pick</button></div>
       <div class="table-wrap"><table><thead><tr id="thead"></tr></thead><tbody id="tbody"></tbody></table></div>
+
+      <details class="collapse" style="margin-top:14px" id="chartDetails">
+        <summary>Fit score vs. monthly cost (chart)</summary>
+        <div class="chart-card" style="margin-top:10px">
+          <p class="chart-sub" id="chartSub">Top-left is the sweet spot. Cost axis is logarithmic.</p>
+          <div class="legend" id="legend" hidden></div>
+          <div id="chart"></div>
+          <div class="tip" id="tip"></div>
+        </div>
+      </details>
       <details class="method"><summary>How the fit score works</summary><ul>
         <li>Each metric is scaled to 0–100 across all models that report it. Indices are scaled linearly; price, cost per task, speed and latency span orders of magnitude and are scaled on a log basis.</li>
         <li>Fit score = weighted average of the scaled metrics. With "only complete data" off, missing metrics are skipped and remaining weights re-normalized (marked "partial").</li>
-        <li>Monthly cost here uses this use case's own sized tokens (section 2), not a generic workload.</li>
+        <li>Monthly cost here uses this use case's own sized tokens above, not a generic workload.</li>
       </ul></details>
-      <h3 style="margin-top:18px">Or set a price manually</h3>
-      <div class="row" style="grid-template-columns:1fr 1fr 1fr">
-        <div><span class="help">input $/1M</span><input id="p_in" type="number" step="0.01" placeholder="manual"></div>
-        <div><span class="help">output $/1M</span><input id="p_out" type="number" step="0.01" placeholder="manual"></div>
-        <div><span class="help">cached input $/1M</span><input id="p_cache" type="number" step="0.01" placeholder="optional"></div>
-      </div>
+
+      <details class="collapse" style="margin-top:14px">
+        <summary>Or set a price manually</summary>
+        <div class="row" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px">
+          <div><span class="help">input $/1M</span><input id="p_in" type="number" step="0.01" placeholder="manual"></div>
+          <div><span class="help">output $/1M</span><input id="p_out" type="number" step="0.01" placeholder="manual"></div>
+          <div><span class="help">cached input $/1M</span><input id="p_cache" type="number" step="0.01" placeholder="optional"></div>
+        </div>
+      </details>
     </section>
 
     <section class="panel reveal" id="sec-cost">
-      <div class="hd"><span class="n">5</span><h2>Business case</h2><span class="desc">Sizing → model → what it's worth. Model + embeddings only — infra via the Azure estimator, labour via the ledger.</span></div>
-      <div class="scen" id="cscen"></div>
+      <div class="hd"><span class="n">4</span><h2>Business case</h2><span class="desc">Sizing → model → what it's worth. Model + embeddings only — infra via the Azure estimator, labour via the ledger.</span></div>
+      <p class="note" id="activeScenNote" style="margin-bottom:14px"></p>
       <h3 style="margin-top:22px">Model</h3>
       <div id="model"></div>
       <h3 style="margin-top:18px">Bill of materials <span style="text-transform:none;letter-spacing:0;font-weight:400">(base scenario)</span></h3>
@@ -384,7 +391,7 @@ footer a { color:var(--cream) } footer .by { color:var(--cream); font-weight:600
     </section>
 
     <section class="panel reveal" id="sec-export">
-      <div class="hd"><span class="n">6</span><h2>Export</h2></div>
+      <div class="hd"><span class="n">5</span><h2>Export</h2></div>
       <details class="collapse">
         <summary>Download options</summary>
         <div class="btns">
@@ -541,6 +548,7 @@ function priceOverride() {
 }
 ["p_in", "p_out", "p_cache"].forEach(id => $(id).addEventListener("change", () => { if (+$("p_in").value > 0) pickedModel = null; run(); }));
 $("clearPick").onclick = () => { pickedModel = null; $("p_in").value = ""; $("p_out").value = ""; $("p_cache").value = ""; run(); };
+$("chartDetails").addEventListener("toggle", () => { if ($("chartDetails").open) renderChart(ranked.rows); });
 
 // ---------- priorities ----------
 function renderProfiles() {
@@ -713,7 +721,7 @@ function run() {
   const minIntelligence = +$("minInt").value || 0;
 
   // The full set of step-2 priorities (all 7 categories, not just Intelligence) drives which model
-  // actually gets priced — the same weighted fit-score ranking the step-4 table uses.
+  // actually gets priced — the same weighted fit-score ranking the step-3 table uses.
   const baseSelection = {
     profile: profileId === "custom" ? undefined : profileId,
     weights: profileId === "custom" ? customWeights : undefined,
@@ -748,12 +756,12 @@ function run() {
 
   const usedModel = b.model.used;
   $("reqFloor").innerHTML = !models.length
-    ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — fetch models below to see what this workload's best fit costs at today's token volume (step 3).`
+    ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> — fetch models below to see what this workload's best fit costs at today's token volume.`
     : !usedModel
       ? `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> (min <b>${costFloor == null ? "—" : usd(costFloor)}</b>/month) — no priced model in the fetched list meets the current filters.`
-      : `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> (min <b>${usd(costFloor)}</b>/month) — the best fit for this workload, <b>${esc(usedModel.name)}</b>, runs <b>${usd(b.cost.model_usd_month)}</b>/month at today's token volume (step 3).`;
+      : `Priorities (step 2) put the intelligence floor at <b>${floorInt}</b> (min <b>${usd(costFloor)}</b>/month) — the best fit for this workload, <b>${esc(usedModel.name)}</b>, runs <b>${usd(b.cost.model_usd_month)}</b>/month at today's token volume.`;
 
-  // section 2: scenario cards
+  // scenario cards
   const S = result.scenarios;
   $("scen").innerHTML = ["low", "base", "high"].map(s => { const r = S[s], cpo = r.cost.cost_per_outcome_eur, bl = r.cost.baseline_per_outcome_eur;
     return `<div class="sc${s === result.selected ? " active" : ""}" data-sc="${s}" title="Make this the active scenario"><h4>${s}${s === result.selected ? " · active" : ""}</h4>
@@ -768,7 +776,7 @@ function run() {
   fl.push(`<div class="note"><span class="pill">${result.bigT}</span> per ${result.unit}: ${fmt(b.per_unit.input)} input / ${fmt(b.per_unit.output)} output / ${fmt(b.per_unit.cacheable)} cacheable tokens</div>`);
   $("flags").innerHTML = fl.join("");
 
-  // section 4: ranking
+  // model ranking (step 3)
   $("minIntO").textContent = $("minInt").value;
   const filters = { profile: baseSelection.profile, weights: baseSelection.weights,
     minInt: minIntelligence, maxCost,
@@ -778,8 +786,8 @@ function run() {
   const sorted = sortRows(ranked.rows);
   renderTable(sorted); renderChart(ranked.rows); renderH2H(ranked.rows);
 
-  // section 5: cost & tuning
-  $("cscen").innerHTML = $("scen").innerHTML;
+  // business case & tuning (step 4)
+  $("activeScenNote").innerHTML = `Active scenario: <b>${result.selected}</b> — change it in step 3.`;
   const sel = b.model.selection, used = b.model.used;
   $("model").innerHTML = (used ? `<div><b>${esc(used.name)}</b> <span style="color:var(--text-2)">(${b.model.price_source})</span> — $${used.usd_per_1m_input} / $${used.usd_per_1m_output} per 1M in/out${used.usd_per_1m_cache_hit != null ? `, cache hit $${used.usd_per_1m_cache_hit}` : ""}${used.intelligence_index != null ? ` · AA intelligence ${used.intelligence_index}` : ""}</div>` : `<div style="color:var(--text-2)">No model priced yet — fetch models above, click a row, or enter a price manually.</div>`)
     + `<div class="help" style="margin-top:6px">${sel.note}</div>`;

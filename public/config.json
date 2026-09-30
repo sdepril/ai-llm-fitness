@@ -100,7 +100,7 @@
       "status": "to-verify per provider"
     },
     "intelligence_floor_by_weight": {
-      "source": "Artificial Analysis Intelligence Index; scale changes per version. Anchors chosen so the step-3 Intelligence priority (0-100) interpolates onto it.",
+      "source": "Artificial Analysis Intelligence Index; scale changes per version. Anchors chosen so the step 2 Intelligence priority (0-100) interpolates onto it.",
       "status": "to-verify at each AA refresh"
     },
     "ptu_breakeven_tokens_month": {
@@ -115,9 +115,5 @@
       "source": "Placeholder FX",
       "status": "set per engagement"
     }
-  },
-  "links": {
-    "taskfit_url": "https://artificial-analysis-mcp.vercel.app/",
-    "note": "LLM Task-Fit (Costra AA app). The capture hands over workload, quality bar and tokenomics inputs via URL parameters."
   }
 }
